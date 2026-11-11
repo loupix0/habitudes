@@ -4,8 +4,14 @@
 - **iPhone :** ouvre le lien de l'app dans **Safari**, touche **Partager** puis **Sur l'écran d'accueil**. L'app a son icône, s'ouvre en plein écran et marche sans internet.
 - **Windows :** sur la page **Releases** du dépôt GitHub, télécharge **Habitudes-Setup.exe** et double-clique dessus.
 
-Une seule app, deux versions : **Windows** (app de bureau) et **iPhone** (app native).
-Les données restent sur chaque appareil. Pour passer de l'un à l'autre : menu **⋯ → Exporter une sauvegarde**, puis **⋯ → Importer une sauvegarde** sur l'autre appareil.
+## Synchroniser l'iPhone et Windows
+Sur **chaque appareil**, une seule fois : menu **⋯ → Synchronisation**.
+1. Touche **Ouvrir GitHub**. Garde la case **gist** cochée, choisis **No expiration**, puis **Generate token**.
+2. Copie la clé (elle commence par `ghp_`), colle-la dans l'app, puis touche **Connecter**.
+
+Ensuite tout se fait seul : à l'ouverture, après chaque changement et toutes les 90 secondes. Si tu modifies sur les deux appareils, les changements sont fusionnés : le plus récent l'emporte, élément par élément.
+Les profils sont gardés dans une note secrète (« gist ») de ton compte GitHub. La clé reste sur l'appareil et ne donne accès qu'à tes gists.
+Sur un nouvel appareil, touche **« Récupérer mes profils »** sur l'écran d'accueil plutôt que de recréer un profil.
 
 ---
 

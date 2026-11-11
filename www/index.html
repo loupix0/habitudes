@@ -338,9 +338,103 @@ const Native = (() => {
   return null;
 })();
 function save(){
+  stamp();
+  saveLocal();
+  scheduleSync();
+}
+function saveLocal(){
   const json = JSON.stringify(S);
   try { localStorage.setItem(KEY, json); } catch(e){ if (!Native) toast('Impossible de sauvegarder (stockage bloqué)'); }
   if (Native) Promise.resolve().then(() => Native.save(json)).catch(() => toast('Impossible de sauvegarder'));
+}
+
+/* =========================================================
+   Horodatage des changements (pour fusionner deux appareils)
+   Chaque élément modifié reçoit « u » = date du changement.
+   ========================================================= */
+let shadow = null;
+const J = x => JSON.stringify(x === undefined ? null : x);
+const noU = o => { if (!o || typeof o !== 'object') return J(o); const { u, ...r } = o; return J(r); };
+const clone = x => JSON.parse(JSON.stringify(x));
+function stamp(){
+  if (!shadow){ shadow = clone(S); return; }
+  const now = Date.now();
+  S.deleted = S.deleted || {};
+  for (const id in shadow.profiles) if (!S.profiles[id]) S.deleted[id] = S.deleted[id] || now;
+  for (const id in S.profiles){
+    const p = S.profiles[id], o = shadow.profiles[id];
+    p.entries = p.entries || {}; p.todos = p.todos || {}; p.todosU = p.todosU || {}; p.deletedHabits = p.deletedHabits || {};
+    if (!o){
+      p.u = p.u || now; p.nameU = p.nameU || now; p.runsU = p.runsU || now; p.settingsU = p.settingsU || now;
+      continue;
+    }
+    if (p.name !== o.name) p.nameU = now;
+    if (J(p.runs) !== J(o.runs)) p.runsU = now;
+    if (J(p.settings) !== J(o.settings)) p.settingsU = now;
+    const oh = {}; for (const h of o.habits) oh[h.id] = h;
+    for (const h of p.habits) if (!oh[h.id] || noU(h) !== noU(oh[h.id])) h.u = now;
+    for (const h of o.habits) if (!p.habits.some(x => x.id === h.id)) p.deletedHabits[h.id] = now;
+    const hids = new Set([...Object.keys(p.entries), ...Object.keys(o.entries || {})]);
+    for (const hid of hids){
+      if (p.deletedHabits[hid]) { delete p.entries[hid]; continue; }
+      const a = p.entries[hid] || {}, b = (o.entries || {})[hid] || {};
+      for (const d of new Set([...Object.keys(a), ...Object.keys(b)])){
+        if (!a[d] && b[d] && b[d].s){ (p.entries[hid] = p.entries[hid] || {})[d] = { s: null, u: now }; }
+        else if (a[d] && noU(a[d]) !== noU(b[d])) a[d].u = now;
+      }
+    }
+    for (const d of new Set([...Object.keys(p.todos), ...Object.keys(o.todos || {})])){
+      if (!p.todos[d]) p.todos[d] = [];
+      if (J(p.todos[d]) !== J((o.todos || {})[d] || [])) p.todosU[d] = now;
+    }
+  }
+  shadow = clone(S);
+}
+
+/* Fusion de deux états : pour chaque élément, la modification la plus récente gagne */
+function mergeState(a, b){
+  const out = { profiles: {}, deleted: { ...(a.deleted || {}) } };
+  for (const k in (b.deleted || {})) out.deleted[k] = Math.max(out.deleted[k] || 0, b.deleted[k]);
+  const ids = new Set([...Object.keys(a.profiles || {}), ...Object.keys(b.profiles || {})]);
+  for (const id of ids){
+    if (out.deleted[id]) continue;
+    const pa = a.profiles[id], pb = b.profiles && b.profiles[id];
+    out.profiles[id] = pa && pb ? mergeProfile(pa, pb) : clone(pa || pb);
+  }
+  out.current = a.current;
+  return out;
+}
+function mergeProfile(a, b){
+  const pick = (f) => ((a[f] || 0) >= (b[f] || 0) ? a : b);
+  const p = clone(a);
+  p.name = pick('nameU').name; p.nameU = Math.max(a.nameU || 0, b.nameU || 0);
+  p.runs = clone(pick('runsU').runs); p.runsU = Math.max(a.runsU || 0, b.runsU || 0);
+  p.settings = clone(pick('settingsU').settings || null) || undefined; p.settingsU = Math.max(a.settingsU || 0, b.settingsU || 0);
+  const del = { ...(a.deletedHabits || {}) };
+  for (const k in (b.deletedHabits || {})) del[k] = Math.max(del[k] || 0, b.deletedHabits[k]);
+  p.deletedHabits = del;
+  const hb = {}; for (const h of b.habits) hb[h.id] = h;
+  const habits = a.habits.map(h => hb[h.id] && (hb[h.id].u || 0) > (h.u || 0) ? clone(hb[h.id]) : clone(h));
+  for (const h of b.habits) if (!habits.some(x => x.id === h.id)) habits.push(clone(h));
+  p.habits = habits.filter(h => !del[h.id]);
+  p.entries = {};
+  for (const hid of new Set([...Object.keys(a.entries || {}), ...Object.keys(b.entries || {})])){
+    if (del[hid]) continue;
+    const ea = (a.entries || {})[hid] || {}, eb = (b.entries || {})[hid] || {}, m = {};
+    for (const d of new Set([...Object.keys(ea), ...Object.keys(eb)])){
+      const x = ea[d], y = eb[d];
+      m[d] = clone(!y || (x && (x.u || 0) >= (y.u || 0)) ? x : y);
+    }
+    p.entries[hid] = m;
+  }
+  p.todos = {}; p.todosU = {};
+  const ta = a.todosU || {}, tb = b.todosU || {};
+  for (const d of new Set([...Object.keys(a.todos || {}), ...Object.keys(b.todos || {})])){
+    const useB = (tb[d] || 0) > (ta[d] || 0) || !(a.todos || {})[d];
+    p.todos[d] = clone(useB ? b.todos[d] : a.todos[d]) || [];
+    p.todosU[d] = Math.max(ta[d] || 0, tb[d] || 0);
+  }
+  return p;
 }
 
 /* ---------- état UI ---------- */
@@ -378,13 +472,14 @@ function habitName(h){
   return h.name;
 }
 function status(p, h, d){
-  const e = p.entries[h.id] && p.entries[h.id][d];
+  const e = entryOf(p, h, d);
   if (e) return e.s;
   const t = today();
   if (h.kind === 'plan' && p.todos[d] && p.todos[d].length) return 'done';
   if (h.kind === 'bed') return d >= addDays(t,-1) ? 'pending' : 'fail';
   return d >= t ? 'pending' : 'fail';
 }
+function entryOf(p, h, d){ const e = p.entries[h.id] && p.entries[h.id][d]; return e && e.s ? e : null; }
 function setEntry(p, h, d, s, extra){
   p.entries[h.id] = p.entries[h.id] || {};
   if (s == null) delete p.entries[h.id][d];
@@ -415,7 +510,7 @@ function autoCheck(){
   const t = today(); if (!tracked(p, t)) return false;
   let changed = false;
   for (const h of p.habits){
-    if (h.kind === 'wake' && habitOn(h, t) && !(p.entries[h.id] && p.entries[h.id][t]) && wakeState(h) === 'late'){
+    if (h.kind === 'wake' && habitOn(h, t) && !entryOf(p, h, t) && wakeState(h) === 'late'){
       setEntry(p, h, t, 'fail', { auto:true }); changed = true;
     }
   }
@@ -424,7 +519,7 @@ function autoCheck(){
 /* Un réveil ajouté (ou un traqueur démarré) après l'heure limite ne compte pas pour aujourd'hui */
 function skipLateWake(p, h){
   const t = today();
-  if (h.kind === 'wake' && habitOn(h, t) && !(p.entries[h.id] && p.entries[h.id][t]) && wakeState(h) === 'late')
+  if (h.kind === 'wake' && habitOn(h, t) && !entryOf(p, h, t) && wakeState(h) === 'late')
     setEntry(p, h, t, 'skip');
 }
 
@@ -543,9 +638,11 @@ function renderWelcome(){
       <input type="text" id="pname" placeholder="Ton prénom" autofocus>
     </div>
     <button class="btn primary" id="createP">Créer mon profil</button>
+    <p class="muted small" style="margin-top:28px">Déjà utilisé sur un autre appareil ? <button id="syncFromWelcome" style="text-decoration:underline">Récupérer mes profils</button></p>
   </div>`;
   const go = () => { createProfile($('#pname').value); render(); };
   $('#createP').onclick = go;
+  $('#syncFromWelcome').onclick = () => syncModal();
   $('#pname').onkeydown = e => { if (e.key === 'Enter') go(); };
   $('#pname').focus();
 }
@@ -613,7 +710,7 @@ function habitCard(p, h){
   }
 
   if (h.kind === 'wake'){
-    const e = (p.entries[h.id] || {})[t];
+    const e = entryOf(p, h, t);
     const ws = wakeState(h);
     let meta, action = '';
     if (s === 'done') meta = `Debout à ${e && e.t ? e.t : '—'} · validé`;
@@ -1057,6 +1154,7 @@ function menu(e){
     <button data-m="profiles">Profils</button>
     <button data-m="charts-setup">Configurer mes graphiques</button>
     <div class="sep"></div>
+    <button data-m="sync">Synchronisation${syncCfg.token ? ` <span class="muted small">· ${syncLabel()}</span>` : ''}</button>
     <button data-m="export">Exporter une sauvegarde</button>
     <button data-m="import">Importer une sauvegarde</button>`;
   e.currentTarget.parentElement.appendChild(el);
@@ -1072,6 +1170,7 @@ function runCmd(c, arg){
   if (c === 'profiles') return profilesModal();
   if (c === 'pick') return pickHabit();
   if (c === 'export') return exportData();
+  if (c === 'sync') return syncModal();
   if (c === 'charts') return openCharts(arg);
   if (c === 'charts-setup') return chartsSetup();
   if (c === 'import') return $('#importFile').click();
@@ -1095,6 +1194,7 @@ function palette(){
     c.push(['Aujourd’hui', 'view', 'today', 'aujourdhui jour'], ['Récap de la semaine', 'view', 'week', 'semaine hebdo récap'], ['Récap du mois', 'view', 'month', 'mois mensuel récap'], ['Récap de l’année', 'view', 'year', 'année annuel récap']);
     for (const id of Object.keys(S.profiles)) if (id !== S.current) c.push([`Ouvrir le profil ${S.profiles[id].name}`, 'switch', id, 'profil changer ' + S.profiles[id].name]);
     c.push(['Voir les graphiques de la semaine', 'charts', 'week', 'graphiques graphique courbe semaine'], ['Voir les graphiques du mois', 'charts', 'month', 'graphiques graphique mois'], ['Voir les graphiques de l\u2019année', 'charts', 'year', 'graphiques graphique année'], ['Configurer mes graphiques', 'charts-setup', null, 'graphiques épingler configurer accueil']);
+    c.push(['Synchronisation iPhone ↔ Windows', 'sync', null, 'synchroniser synchro sync iphone windows github']);
     c.push(['Gérer les profils', 'profiles', null, 'profils'], ['Exporter une sauvegarde', 'export', null, 'export sauvegarde'], ['Importer une sauvegarde', 'import', null, 'import']);
     return c;
   };
@@ -1145,7 +1245,9 @@ $('#importFile').onchange = e => {
       const d = JSON.parse(r.result);
       if (!d || typeof d.profiles !== 'object') throw 0;
       confirmModal('Importer cette sauvegarde ?', 'Les données actuelles seront remplacées.', 'Importer', () => {
-        S = d; if (!S.profiles[S.current]) S.current = Object.keys(S.profiles)[0] || null;
+        const prevDeleted = S.deleted || {};
+        S = d; S.deleted = Object.assign({}, d.deleted || {}, prevDeleted);
+        if (!S.profiles[S.current]) S.current = Object.keys(S.profiles)[0] || null;
         save(); render(); toast('Sauvegarde importée');
       });
     } catch(err){ toast('Fichier invalide'); }
@@ -1170,7 +1272,7 @@ function maybePrompt(){
   }
   const t = today();
   if (!planDismissed && p.habits.some(h => h.kind === 'plan' && counts(p, h, t)) && !(p.todos[t] && p.todos[t].length)
-      && !(p.entries[p.habits.find(h => h.kind === 'plan' && habitOn(h, t)).id] || {})[t]) planModal();
+      && !entryOf(p, p.habits.find(h => h.kind === 'plan' && habitOn(h, t)), t)) planModal();
 }
 
 function signature(){
@@ -1192,7 +1294,7 @@ setInterval(() => {
   if (changedDay){ lastDay = today(); planDismissed = false; }
   const changed = autoCheck();
   const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
-  if ((changed || changedDay || signature() !== lastSig) && !typing){ render(); if (changedDay) maybePrompt(); }
+  if ((changed || changedDay || pendingRender || signature() !== lastSig) && !typing){ pendingRender = false; render(); if (changedDay) maybePrompt(); }
 }, 20000);
 let resizeT;
 window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { hideTip(); drawCharts(); }, 120); });
@@ -1320,7 +1422,7 @@ function buildSpec(p, key, period, anchor){
     const target = toMin(cur.time);
     const data = B.map(b => {
       const times = [], fails = { n: 0 };
-      for (const d of b.days){ if (d > t) break; for (const h of wh){ if (!counts(p, h, d)) continue; const e = (p.entries[h.id] || {})[d]; const s = status(p, h, d);
+      for (const d of b.days){ if (d > t) break; for (const h of wh){ if (!counts(p, h, d)) continue; const e = entryOf(p, h, d); const s = status(p, h, d);
         if (s === 'done' && e && e.t) times.push(toMin(e.t)); else if (s === 'fail') fails.n++; } }
       return { avg: times.length ? Math.round(times.reduce((a, c) => a + c, 0) / times.length) : null, n: times.length, fails: fails.n };
     });
@@ -1488,6 +1590,163 @@ function chartsSetup(){
   draw();
 }
 
+/* =========================================================
+   Synchronisation iPhone ↔ Windows via un gist secret GitHub
+   ========================================================= */
+const SYNC_KEY = 'habitudes.sync';
+const GIST_FILE = 'habitudes-sync.json';
+const GIST_DESC = 'Habitudes — synchronisation (ne pas supprimer)';
+const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Habitudes%20-%20synchronisation';
+let syncCfg = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch(e){ return {}; } })();
+let syncBusy = false, syncTimer = null, syncErr = null, pendingRender = false, syncAgain = false;
+const writeCfg = () => { try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg)); } catch(e){} };
+
+async function gh(path, opts = {}, token = syncCfg.token){
+  const r = await fetch('https://api.github.com' + path, {
+    method: opts.method || 'GET', cache: 'no-store',
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+  return r.status === 204 ? null : r.json();
+}
+async function findGist(){
+  for (let page = 1; page <= 10; page++){
+    const list = await gh(`/gists?per_page=100&page=${page}`);
+    const g = list.find(g => g.files && g.files[GIST_FILE]);
+    if (g) return g.id;
+    if (list.length < 100) break;
+  }
+  return null;
+}
+async function readRemote(){
+  const g = await gh('/gists/' + syncCfg.gistId);
+  const f = g.files && g.files[GIST_FILE];
+  if (!f) return null;
+  let txt = f.content;
+  if (f.truncated) txt = await (await fetch(f.raw_url, { cache: 'no-store' })).text();
+  try { return txt ? JSON.parse(txt) : null; } catch(e){ return null; }
+}
+const shareable = st => { const { current, ...rest } = st; return JSON.stringify(rest); };
+function scheduleSync(){
+  if (!syncCfg.token) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), 3000);
+}
+function syncLabel(){
+  if (syncBusy) return 'en cours…';
+  if (syncErr) return syncErr;
+  if (!syncCfg.last) return 'jamais';
+  const m = Math.round((Date.now() - syncCfg.last) / 60000);
+  return m < 1 ? 'à l’instant' : m < 60 ? `il y a ${m} min` : `il y a ${Math.round(m/60)} h`;
+}
+async function syncNow(manual){
+  if (!syncCfg.token) return false;
+  if (syncBusy){ syncAgain = true; return false; }
+  if (!navigator.onLine){ syncErr = 'hors ligne'; if (manual) toast('Pas de connexion internet'); refreshSyncUI(); return false; }
+  syncBusy = true; refreshSyncUI();
+  let ok = false;
+  try {
+    if (!syncCfg.gistId){
+      syncCfg.gistId = await findGist();
+      if (!syncCfg.gistId){
+        stamp();
+        const g = await gh('/gists', { method: 'POST', body: { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: shareable(S) } } } });
+        syncCfg.gistId = g.id;
+      }
+      writeCfg();
+    }
+    let remote;
+    try { remote = await readRemote(); }
+    catch(e){ if (e.status === 404){ syncCfg.gistId = null; writeCfg(); } throw e; }
+    stamp();
+    const before = shareable(S);
+    if (remote && remote.profiles){
+      const cur = S.current;
+      S = mergeState(S, remote);
+      S.current = S.profiles[cur] ? cur : (Object.keys(S.profiles)[0] || null);
+      shadow = clone(S);
+      saveLocal();
+    }
+    const after = shareable(S);
+    if (!remote || after !== shareable(remote))
+      await gh('/gists/' + syncCfg.gistId, { method: 'PATCH', body: { files: { [GIST_FILE]: { content: after } } } });
+    syncCfg.last = Date.now(); syncErr = null; writeCfg(); ok = true;
+    if (before !== after){
+      const a = document.activeElement;
+      if (a && /INPUT|TEXTAREA/.test(a.tagName)) pendingRender = true; else render();
+    }
+    if (manual) toast('Synchronisé');
+  } catch(e){
+    syncErr = e.status === 401 ? 'clé GitHub refusée' : e.status === 403 ? 'accès refusé par GitHub' : e.status === 404 ? 'gist introuvable' : 'échec (connexion ?)';
+    if (manual) toast('Synchronisation : ' + syncErr);
+  } finally {
+    syncBusy = false; refreshSyncUI();
+    if (syncAgain){ syncAgain = false; scheduleSync(); }
+  }
+  return ok;
+}
+function refreshSyncUI(){
+  const el = $('[data-sync-status]'); if (el) el.textContent = syncLabel();
+}
+function syncModal(){
+  const connected = !!syncCfg.token;
+  const m = openModal(connected ? `
+    <h3>Synchronisation</h3>
+    <p class="muted" style="margin:0">Tes profils sont synchronisés entre tes appareils via une note secrète de ton compte GitHub${syncCfg.login ? ` <b>${esc(syncCfg.login)}</b>` : ''}.</p>
+    <div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <div><div class="title">Dernière synchronisation</div><div class="meta" data-sync-status>${syncLabel()}</div></div>
+      <button class="btn sm" data-now>Synchroniser</button>
+    </div>
+    <p class="muted small" style="margin:14px 0 0">Sur ton autre appareil : menu ⋯ → <b>Synchronisation</b>, puis colle une clé GitHub (la même ou une nouvelle). La synchro se fait toute seule à l'ouverture et après chaque changement.</p>
+    <div class="foot" style="justify-content:space-between"><button class="btn danger" data-off>Déconnecter cet appareil</button><button class="btn primary" data-c>Fermer</button></div>`
+  : `
+    <h3>Synchroniser iPhone ↔ Windows</h3>
+    <p class="muted" style="margin:0">Tes profils sont gardés dans une note secrète (un « gist ») de ton compte GitHub. À faire une fois sur chaque appareil.</p>
+    <ol style="padding-left:20px;margin:16px 0 0;display:flex;flex-direction:column;gap:14px">
+      <li><b>Crée une clé GitHub.</b> Sur la page qui s'ouvre : garde la case <b>gist</b> cochée, choisis <b>No expiration</b>, puis <b>Generate token</b>.<br>
+        <button class="btn sm" data-gen style="margin-top:8px">Ouvrir GitHub</button></li>
+      <li><b>Copie la clé</b> (elle commence par <code>ghp_</code>) et colle-la ici :
+        <input type="text" data-token placeholder="ghp_…" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:8px"></li>
+    </ol>
+    <p class="muted small" style="margin:14px 0 0">La clé reste sur cet appareil et ne donne accès qu'à tes gists.</p>
+    <div class="foot"><button class="btn ghost" data-c>Annuler</button><button class="btn primary" data-ok>Connecter</button></div>`);
+  $('[data-c]', m).onclick = closeModal;
+  if (connected){
+    $('[data-now]', m).onclick = () => syncNow(true);
+    $('[data-off]', m).onclick = () => {
+      closeModal();
+      confirmModal('Déconnecter cet appareil ?', 'Tes données restent sur cet appareil et sur GitHub. Elles ne seront simplement plus synchronisées ici.', 'Déconnecter', () => {
+        syncCfg = {}; writeCfg(); toast('Synchronisation désactivée');
+      }, true);
+    };
+    return;
+  }
+  $('[data-gen]', m).onclick = () => window.open(TOKEN_URL, '_blank');
+  const inp = $('[data-token]', m), ok = $('[data-ok]', m);
+  const connect = async () => {
+    const token = inp.value.trim().replace(/^Bearer\s+/i, '');
+    if (token.length < 20){ toast('Colle la clé GitHub complète'); return; }
+    ok.disabled = true; ok.textContent = 'Connexion…';
+    try {
+      const user = await gh('/user', {}, token);
+      syncCfg = { token, login: user.login }; writeCfg();
+      const done = await syncNow();
+      closeModal();
+      if (done){ toast('Synchronisé avec GitHub'); if (!P() && Object.keys(S.profiles).length){ S.current = Object.keys(S.profiles)[0]; saveLocal(); } render(); maybePrompt(); }
+      else toast('Connecté, mais la synchro a échoué : ' + syncErr);
+    } catch(e){
+      ok.disabled = false; ok.textContent = 'Connecter';
+      toast(e.status === 401 ? 'Clé refusée par GitHub : vérifie-la' : 'Impossible de joindre GitHub');
+    }
+  };
+  ok.onclick = connect;
+  inp.onkeydown = e => { if (e.key === 'Enter') connect(); };
+  inp.focus();
+}
+setInterval(() => { if (!document.hidden) syncNow(); }, 90000);
+addEventListener('online', () => syncNow());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+
 /* App installable (iPhone / Android / PC) quand elle est servie en ligne */
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !Native) {
@@ -1515,9 +1774,11 @@ async function boot(){
       else if (Object.keys(S.profiles).length) save();   // première ouverture : reprend les données locales
     } catch(e){}
   }
+  shadow = null; stamp();
   lastDay = today();
   render();
   maybePrompt();
+  syncNow();
 }
 const _render = render;
 render = function(){ _render(); installHint(); };
