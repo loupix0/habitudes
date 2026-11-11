@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f7f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131312" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<title>Habitudes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habitudes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  --bg:#f7f7f4; --surface:#ffffff; --text:#1b1b19; --muted:#8b8b85; --line:#e8e8e2;
+  --accent:#2f7d5b; --accent-soft:#e2efe8; --fail:#c4553c; --fail-soft:#f6e3dd; --pending:#d9d9d2; --chart-muted:#cfcfc6;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131312; --surface:#1b1b19; --text:#ededea; --muted:#8e8e88; --line:#2a2a27;
+    --accent:#5cbf8f; --accent-soft:#1d3228; --fail:#e27c63; --fail-soft:#3a231e; --pending:#3a3a36; --chart-muted:#4a4a45;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:none}
+.only-touch{display:none!important}
+@media (hover:none) and (pointer:coarse){
+  .only-touch{display:inline-grid!important}
+  .only-desk{display:none!important}
+  input[type=text],input[type=time],input[type=date]{font-size:16px}
+  .icon-btn{width:40px;height:40px}
+}
+button{cursor:pointer;background:none;border:0;padding:0}
+input[type=text],input[type=time],input[type=date]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;outline:none;width:100%}
+input:focus{border-color:var(--text)}
+.wrap{max-width:640px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(80px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.avatar{width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);display:grid;place-items:center;font-size:11px;font-weight:600}
+.dot-run{width:7px;height:7px;border-radius:50%;background:var(--pending)}
+.dot-run.on{background:var(--accent)}
+.icon-btn{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--muted);border:1px solid transparent}
+.icon-btn:hover{color:var(--text);border-color:var(--line);background:var(--surface)}
+.kbd{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted)}
+.tabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--line)}
+.tab{padding:8px 10px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--text);border-color:var(--text)}
+
+h1{font-size:26px;line-height:1.2;margin:0 0 4px;font-weight:600;letter-spacing:-.02em}
+h2{font-size:13px;margin:28px 0 10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sub{color:var(--muted);margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.progress{height:3px;background:var(--line);border-radius:3px;margin:14px 0 6px;overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--text)}
+
+.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--radius);background:var(--text);color:var(--bg);margin:18px 0}
+.banner button{background:var(--bg);color:var(--text);padding:6px 12px;border-radius:8px;font-weight:500;white-space:nowrap}
+
+/* cards */
+.list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.row{display:flex;align-items:center;gap:14px}
+.grow{flex:1;min-width:0}
+.title{font-weight:500}
+.meta{font-size:13px;color:var(--muted)}
+.streak{font-size:12px;color:var(--muted);white-space:nowrap}
+.check{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--pending);display:grid;place-items:center;flex:none;transition:.15s}
+.check svg{opacity:0;width:14px;height:14px}
+.check.done{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.check.done svg{opacity:1}
+.check.fail{background:var(--fail-soft);border-color:var(--fail);color:var(--fail)}
+.check.fail svg{opacity:1}
+.check.skip{border-style:dashed}
+button.check:hover{border-color:var(--text)}
+.edit{opacity:0;color:var(--muted);font-size:13px;padding:4px}
+.card:hover .edit{opacity:1}
+@media (hover:none){.edit{opacity:1}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.btn:hover{border-color:var(--text)}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn.primary:disabled{opacity:.35;cursor:not-allowed}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn.ghost:hover{color:var(--text)}
+.btn.danger{color:var(--fail)}
+.btn.sm{padding:5px 11px;font-size:13px;border-radius:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.sep{height:1px;background:var(--line);margin:12px 0}
+
+/* todos */
+.todos{margin:10px 0 0;padding:0;list-style:none}
+.todo{display:flex;align-items:center;gap:10px;padding:6px 0}
+.todo .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--pending);display:grid;place-items:center;flex:none}
+.todo .box svg{width:11px;height:11px;opacity:0}
+.todo.done .box{background:var(--text);border-color:var(--text);color:var(--bg)}
+.todo.done .box svg{opacity:1}
+.todo.done .txt{color:var(--muted);text-decoration:line-through}
+.todo .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.todo .x{color:var(--muted);opacity:0;padding:0 4px}
+.todo:hover .x{opacity:1}
+@media (hover:none){.todo .x{opacity:1}}
+.add-todo{border:0!important;padding:6px 0!important;background:none!important;border-radius:0!important}
+
+/* empty / hero */
+.hero{padding:40px 0 10px}
+.hero p{max-width:460px}
+.rules{margin:22px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.rules li{display:flex;gap:10px;color:var(--muted)}
+.rules b{color:var(--text);font-weight:500}
+.field{display:flex;flex-direction:column;gap:6px;margin:14px 0}
+.field label{font-size:13px;color:var(--muted)}
+
+/* recaps */
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.nav h1{font-size:22px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.stat b{display:block;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.stat span{font-size:12px;color:var(--muted)}
+.grid-week{width:100%;border-collapse:collapse;table-layout:fixed}
+.grid-week th{font-weight:500;font-size:12px;color:var(--muted);padding:0 0 8px}
+.grid-week th.today{color:var(--text)}
+.grid-week td{padding:7px 0;text-align:center;border-top:1px solid var(--line)}
+.grid-week td.name{text-align:left;padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.grid-week col.namecol{width:38%}
+.cell{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;border:1.5px solid transparent}
+.cell.done{background:var(--accent)}
+.cell.fail{background:var(--fail-soft);border-color:var(--fail)}
+.cell.pending{border-color:var(--pending)}
+.cell.skip{border:1.5px dashed var(--pending)}
+.cell.none{width:4px;height:4px;background:var(--line)}
+button.cell:hover{outline:2px solid var(--line);outline-offset:2px}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:1fr 44px;gap:4px 12px;align-items:center}
+.bar-row .lbl{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .pct{font-size:13px;color:var(--muted);text-align:right;grid-row:span 2}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .hd{font-size:12px;color:var(--muted);text-align:center}
+.cal .d{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-size:13px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.cal .d.t{color:var(--text)}
+.cal .d.today{outline:1.5px solid var(--text);outline-offset:1px}
+.cal .d.dark{color:var(--surface)}
+.year{display:flex;flex-direction:column;gap:6px}
+.yr{display:grid;grid-template-columns:34px 1fr 40px;align-items:center;gap:10px}
+.yr .m{font-size:12px;color:var(--muted)}
+.yr .p{font-size:12px;color:var(--muted);text-align:right}
+.sq{display:grid;grid-template-columns:repeat(31,1fr);gap:2px}
+.sq i{aspect-ratio:1;border-radius:2px;background:var(--line);opacity:.6}
+.sq i.t{opacity:1}
+.sq i.x{background:transparent}
+.legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:12px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* modal */
+.backdrop{position:fixed;inset:0;background:rgba(10,10,10,.35);display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 16px;z-index:10;animation:fade .15s}
+@media (prefers-color-scheme: dark){.backdrop{background:rgba(0,0,0,.6)}}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;width:100%;max-width:480px;max-height:84vh;overflow:auto;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.18);animation:pop .18s}
+.modal h3{margin:0 0 4px;font-size:19px;font-weight:600;letter-spacing:-.01em}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.99)}}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.opt{display:block;text-align:left;width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.opt:hover{border-color:var(--muted)}
+.opt.on{border-color:var(--text);box-shadow:inset 0 0 0 1px var(--text)}
+.opt .d{font-size:13px;color:var(--muted)}
+.opt .extra{margin-top:10px}
+.opt .extra input{max-width:160px}
+.prof{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.prof:last-child{border-bottom:0}
+.palette{padding:0;max-width:520px}
+.palette input{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:16px 18px!important;font-size:16px;background:transparent!important}
+.palette ul{list-style:none;margin:0;padding:6px}
+.palette li{padding:10px 12px;border-radius:9px;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
+.palette li.on{background:var(--bg)}
+.palette li span{color:var(--muted);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;z-index:20;animation:fade .2s}
+.menu{position:absolute;right:0;top:40px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px;min-width:220px;box-shadow:0 12px 40px rgba(0,0,0,.12);z-index:5}
+.menu button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:8px}
+.menu button:hover{background:var(--bg)}
+.menu .sep{margin:6px 4px}
+.install{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);font-size:14px}
+.install img{width:40px;height:40px;border-radius:10px;flex:none}
+.install b{font-weight:600}
+.install .x{color:var(--muted);font-size:20px;padding:0 4px;margin-left:auto}
+
+/* graphiques */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-4px 0 18px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--surface);gap:2px}
+.seg button{padding:5px 12px;border-radius:7px;color:var(--muted);font-size:14px}
+.seg button.on{background:var(--text);color:var(--bg)}
+.charts{display:flex;flex-direction:column;gap:12px}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.chart-title{font-weight:500}
+.chart-sub{font-size:13px;color:var(--muted)}
+.pin{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);padding:4px 8px;border-radius:8px;border:1px solid transparent;white-space:nowrap}
+.pin:hover{border-color:var(--line);color:var(--text)}
+.pin.on{color:var(--text);border-color:var(--line)}
+.pin svg{width:14px;height:14px}
+.chart{position:relative;width:100%;min-height:20px}
+.chart svg{display:block;overflow:visible}
+.chart text{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.chart text.strong{fill:var(--text);font-weight:600}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .ref{stroke:var(--muted);stroke-width:1;opacity:.55}
+.chart .hit{fill:var(--text);fill-opacity:0;outline:none;cursor:default}
+.chart .hit.on{fill-opacity:.045}
+.chart .hit:focus-visible{stroke:var(--text);stroke-width:1}
+.lgd{display:flex;gap:16px;font-size:12px;color:var(--muted);margin:-4px 0 10px}
+.lgd i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+.hbars{display:flex;flex-direction:column;gap:12px}
+.hb{display:grid;grid-template-columns:1fr auto;gap:5px 12px;align-items:center}
+.hb .n{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .v{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.hb .v span{color:var(--muted)}
+.hb .track{grid-column:1 / -1;height:10px;background:var(--line);border-radius:0 4px 4px 0;overflow:hidden}
+.hb .track i{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+details.data{margin-top:10px;font-size:13px}
+details.data summary{color:var(--muted);cursor:pointer;width:max-content}
+details.data table{width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums}
+details.data th,details.data td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+details.data th{color:var(--muted);font-weight:500}
+.tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:30;min-width:140px}
+.tip .t{color:var(--muted);font-size:12px;margin-bottom:4px}
+.tip .r{display:flex;align-items:center;gap:8px}
+.tip .r .l{color:var(--muted);flex:1}
+.tip .r b{font-weight:600;font-variant-numeric:tabular-nums}
+.tip .k{width:12px;height:2px;border-radius:2px;display:inline-block}
+.pin-hint{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border:1px dashed var(--line);border-radius:var(--radius);color:var(--muted);font-size:14px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline}
+.sec-head button{font-size:13px;color:var(--muted);text-transform:none;letter-spacing:0}
+.sec-head button:hover{color:var(--text)}
+.setup-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.setup-row:last-of-type{border-bottom:0}
+.chips{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.chipt{font-size:13px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.chipt.on{background:var(--text);border-color:var(--text);color:var(--bg)}
+.chipt:disabled{opacity:.3;cursor:not-allowed}
+.check-line{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:14px;cursor:pointer}
+.check-line input{width:16px;height:16px;accent-color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>
+/* =========================================================
+   Habitudes — traqueur minimaliste, 100 % local
+   ========================================================= */
+const KEY = 'habitudes.v1';
+const CYCLE = 14;          // une nouvelle habitude toutes les 2 semaines
+const GRACE = 15;          // minutes de tolérance pour le réveil
+const WAKE_OPEN = 180;     // le check-in réveil ouvre 3 h avant l'heure
+
+const PRESETS = [
+  {key:'wake', kind:'wake', name:'Se réveiller à une heure fixe', time:'07:00', desc:"Coche « Debout » avant l'heure + 15 min. Passé ce délai, c'est raté automatiquement."},
+  {key:'bed', kind:'bed', name:'Se coucher avant une heure', time:'23:00', desc:'Se coche le lendemain matin : « Hier soir, au lit à l\'heure ? »'},
+  {key:'plan', kind:'plan', name:'Planifier ma journée', desc:"À l'ouverture de l'app, écris ta to-do du jour et coche les tâches."},
+  {key:'water', kind:'check', name:'Boire 1,5 L d’eau'},
+  {key:'read', kind:'check', name:'Lire 20 minutes'},
+  {key:'sport', kind:'check', name:'Faire du sport'},
+  {key:'meditate', kind:'check', name:'Méditer 10 minutes'},
+  {key:'walk', kind:'check', name:'Marcher 30 minutes'},
+  {key:'noscreen', kind:'check', name:'Pas d’écran 1 h avant de dormir'},
+  {key:'journal', kind:'check', name:'Écrire dans mon journal'},
+  {key:'nosugar', kind:'check', name:'Pas de sucre ajouté'},
+  {key:'tidy', kind:'check', name:'Ranger 10 minutes'},
+];
+
+const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const MONTHS_S = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+const DAYS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const DAYS_S = ['L','M','M','J','V','S','D'];
+const ICON_CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+const ICON_X = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>';
+
+/* ---------- utilitaires ---------- */
+const pad = n => String(n).padStart(2,'0');
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today = () => keyOf(new Date());
+const toDate = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y,m-1,d); };
+const addDays = (k,n) => { const d = toDate(k); d.setDate(d.getDate()+n); return keyOf(d); };
+const diffDays = (a,b) => Math.round((toDate(b)-toDate(a))/86400000);
+const nowMin = () => { const d = new Date(); return d.getHours()*60 + d.getMinutes(); };
+const nowHM = () => { const d = new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fmtMin = m => { m = ((m%1440)+1440)%1440; return pad(Math.floor(m/60))+':'+pad(m%60); };
+const mondayOf = k => { const d = toDate(k); d.setDate(d.getDate() - (d.getDay()+6)%7); return keyOf(d); };
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const longDate = k => { const d = toDate(k); return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const shortDate = k => { const d = toDate(k); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const pct = r => r == null ? '—' : Math.round(r*100) + ' %';
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+
+/* ---------- stockage ---------- */
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.profiles) return s; } catch(e){}
+  return { profiles:{}, current:null };
+}
+let S = load();
+/* Stockage natif : fichier sur Windows (app de bureau), stockage de l'app sur iPhone */
+const Native = (() => {
+  if (window.habitudesDesktop) return window.habitudesDesktop;
+  const C = window.Capacitor;
+  if (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.Preferences){
+    const Pr = C.Plugins.Preferences;
+    return {
+      load: async () => (await Pr.get({ key: KEY })).value,
+      save: s => Pr.set({ key: KEY, value: s }),
+      exportFile: async (name, text) => {
+        const r = await C.Plugins.Filesystem.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+        await C.Plugins.Share.share({ title: 'Sauvegarde Habitudes', url: r.uri });
+        return true;
+      }
+    };
+  }
+  return null;
+})();
+function save(){
+  const json = JSON.stringify(S);
+  try { localStorage.setItem(KEY, json); } catch(e){ if (!Native) toast('Impossible de sauvegarder (stockage bloqué)'); }
+  if (Native) Promise.resolve().then(() => Native.save(json)).catch(() => toast('Impossible de sauvegarder'));
+}
+
+/* ---------- état UI ---------- */
+let view = 'today';
+let cursor = { week: today(), month: today(), year: today() };
+let planDismissed = false;
+let lastDay = today();
+let lastSig = '';
+
+/* ---------- modèle ---------- */
+const P = () => S.profiles[S.current];
+const lastRun = p => p.runs[p.runs.length-1];
+const isRunning = p => !!lastRun(p) && !lastRun(p).end;
+const isScheduled = p => isRunning(p) && lastRun(p).start > today();
+const isLive = p => isRunning(p) && !isScheduled(p);
+function tracked(p, d){
+  const t = today(); if (d > t) return false;
+  return p.runs.some(r => d >= r.start && d <= (r.end || t));
+}
+function activeDays(p){
+  const t = today(); let n = 0;
+  for (const r of p.runs){ if (r.start > t) continue; n += diffDays(r.start, r.end || t) + 1; }
+  return n;
+}
+const expectedHabits = p => { const n = activeDays(p); return n < 1 ? 1 : 1 + Math.floor((n-1)/CYCLE); };
+const daysToNext = p => { const n = activeDays(p); return n < 1 ? CYCLE : CYCLE*expectedHabits(p) + 1 - n; };
+const currentHabits = p => p.habits.filter(h => !h.archived);
+const needNewHabit = p => isLive(p) && currentHabits(p).length < expectedHabits(p);
+const habitOn = (h, d) => d >= h.start && (!h.archived || d < h.archived);
+const counts = (p, h, d) => tracked(p, d) && habitOn(h, d);
+
+function habitName(h){
+  if (h.kind === 'wake') return `Réveil à ${h.time}`;
+  if (h.kind === 'bed') return `Coucher avant ${h.time}`;
+  return h.name;
+}
+function status(p, h, d){
+  const e = p.entries[h.id] && p.entries[h.id][d];
+  if (e) return e.s;
+  const t = today();
+  if (h.kind === 'plan' && p.todos[d] && p.todos[d].length) return 'done';
+  if (h.kind === 'bed') return d >= addDays(t,-1) ? 'pending' : 'fail';
+  return d >= t ? 'pending' : 'fail';
+}
+function setEntry(p, h, d, s, extra){
+  p.entries[h.id] = p.entries[h.id] || {};
+  if (s == null) delete p.entries[h.id][d];
+  else p.entries[h.id][d] = Object.assign({ s }, extra || {});
+  save();
+}
+function streak(p, h){
+  let d = today(), n = 0, guard = 0;
+  while (d >= h.start && guard++ < 4000){
+    if (counts(p, h, d)){
+      const s = status(p, h, d);
+      if (s === 'done') n++;
+      else if (s !== 'pending' && s !== 'skip') break;
+    }
+    d = addDays(d, -1);
+  }
+  return n;
+}
+function wakeState(h){
+  const deadline = toMin(h.time) + GRACE, open = toMin(h.time) - WAKE_OPEN, m = nowMin();
+  if (m > deadline) return 'late';
+  if (open >= 0 && m < open) return 'closed';
+  return 'open';
+}
+/* Le réveil se met automatiquement à « raté » si pas coché à l'heure + 15 min */
+function autoCheck(){
+  const p = P(); if (!p || !isLive(p)) return false;
+  const t = today(); if (!tracked(p, t)) return false;
+  let changed = false;
+  for (const h of p.habits){
+    if (h.kind === 'wake' && habitOn(h, t) && !(p.entries[h.id] && p.entries[h.id][t]) && wakeState(h) === 'late'){
+      setEntry(p, h, t, 'fail', { auto:true }); changed = true;
+    }
+  }
+  return changed;
+}
+/* Un réveil ajouté (ou un traqueur démarré) après l'heure limite ne compte pas pour aujourd'hui */
+function skipLateWake(p, h){
+  const t = today();
+  if (h.kind === 'wake' && habitOn(h, t) && !(p.entries[h.id] && p.entries[h.id][t]) && wakeState(h) === 'late')
+    setEntry(p, h, t, 'skip');
+}
+
+/* ---------- stats ---------- */
+function dayScore(p, d){
+  let done = 0, total = 0;
+  for (const h of p.habits){
+    if (!counts(p, h, d)) continue;
+    const s = status(p, h, d);
+    if (s === 'skip') continue;
+    total++; if (s === 'done') done++;
+  }
+  return { done, total };
+}
+function rangeStats(p, days){
+  const t = today(); let done = 0, fail = 0, perfect = 0, best = 0, run = 0, trackedDays = 0;
+  const per = {};
+  for (const d of days){
+    if (d > t) break;
+    if (!tracked(p, d)) continue;
+    trackedDays++;
+    let dd = 0, dt = 0, dp = 0;
+    for (const h of p.habits){
+      if (!habitOn(h, d)) continue;
+      const s = status(p, h, d);
+      if (s === 'skip') continue;
+      if (s === 'pending'){ dp++; continue; }
+      per[h.id] = per[h.id] || { done:0, total:0 };
+      per[h.id].total++; dt++;
+      if (s === 'done'){ per[h.id].done++; dd++; done++; } else fail++;
+    }
+    if (dt > 0 && dd === dt && dp === 0){ perfect++; run++; best = Math.max(best, run); }
+    else if (dt > 0 || dp > 0){ if (d !== t) run = 0; }
+  }
+  return { done, fail, rate: done+fail ? done/(done+fail) : null, perfect, best, per, trackedDays };
+}
+const daysBetween = (a, b) => { const out = []; for (let d = a; d <= b; d = addDays(d,1)) out.push(d); return out; };
+
+/* ---------- actions ---------- */
+function createProfile(name){
+  const id = uid();
+  S.profiles[id] = { id, name: name.trim() || 'Moi', createdAt: today(), runs: [], habits: [], entries: {}, todos: {} };
+  S.current = id; save();
+  planDismissed = false;
+}
+function addHabit(p, data){
+  const t = today();
+  const start = isScheduled(p) ? lastRun(p).start : t;
+  const h = { id: uid(), kind: data.kind, name: data.name, time: data.time, preset: data.preset, start };
+  p.habits.push(h); save();
+  skipLateWake(p, h);
+  return h;
+}
+function startTracker(p, date){
+  const t = today(); date = date && date > t ? date : t;
+  const r = lastRun(p);
+  if (r && r.end && r.end >= t && date === t) r.end = null;   // reprise le même jour
+  else p.runs.push({ start: date, end: null });
+  if (date === t) for (const h of currentHabits(p)) skipLateWake(p, h);
+  save();
+}
+function stopTracker(p){
+  const r = lastRun(p); if (!r || r.end) return;
+  if (r.start > today()) p.runs.pop(); else r.end = today();
+  save();
+}
+
+/* ---------- rendu ---------- */
+const app = $('#app');
+function render(){
+  const p = P();
+  if (!p){ renderWelcome(); return; }
+  autoCheck();
+  hideTip(); chartSpecs = [];
+  let body = '';
+  if (view === 'today') body = renderToday(p);
+  else if (view === 'week') body = renderWeek(p);
+  else if (view === 'month') body = renderMonth(p);
+  else body = renderYear(p);
+  if (view === 'today' && p.runs.length) body += pinnedSection(p);
+  app.innerHTML = header(p) + body;
+  bindCommon();
+  drawCharts();
+  lastSig = signature();
+}
+
+function header(p){
+  const tabs = [['today','Aujourd’hui'],['week','Semaine'],['month','Mois'],['year','Année']];
+  return `
+  <div class="top">
+    <button class="chip" data-act="profiles" title="Changer de profil">
+      <span class="avatar">${esc(p.name.charAt(0).toUpperCase())}</span>${esc(p.name)}
+      <span class="dot-run ${isLive(p)?'on':''}" title="${isLive(p)?'Traqueur en cours':'Traqueur arrêté'}"></span>
+    </button>
+    <div style="display:flex;gap:4px;align-items:center;position:relative">
+      <button class="icon-btn" data-act="charts" title="Graphiques (touche G)" aria-label="Graphiques">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M12 20V5M19 20v-6"/></svg>
+      </button>
+      <button class="icon-btn only-desk" data-act="palette" title="Commandes (Ctrl + K)" style="width:auto;padding:0 8px"><span class="kbd">Ctrl K</span></button>
+      <button class="icon-btn only-touch" data-act="palette" title="Commandes" aria-label="Commandes"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+      <button class="icon-btn" data-act="menu" title="Menu" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="tabs">${tabs.map(([k,l]) => `<button class="tab ${view===k?'on':''}" data-view="${k}">${l}</button>`).join('')}</nav>`;
+}
+
+function renderWelcome(){
+  app.innerHTML = `
+  <div class="hero">
+    <h1>Habitudes</h1>
+    <p class="sub">Une habitude pour commencer. Une de plus toutes les deux semaines.</p>
+    <div class="field" style="max-width:320px;margin-top:28px">
+      <label for="pname">Nom du profil</label>
+      <input type="text" id="pname" placeholder="Ton prénom" autofocus>
+    </div>
+    <button class="btn primary" id="createP">Créer mon profil</button>
+  </div>`;
+  const go = () => { createProfile($('#pname').value); render(); };
+  $('#createP').onclick = go;
+  $('#pname').onkeydown = e => { if (e.key === 'Enter') go(); };
+  $('#pname').focus();
+}
+
+function renderIdle(p){
+  const stopped = p.runs.length > 0;
+  const r = lastRun(p);
+  if (isScheduled(p)){
+    const n = diffDays(today(), r.start);
+    return `<div class="hero">
+      <h1>Démarrage ${n === 1 ? 'demain' : 'dans ' + n + ' jours'}</h1>
+      <p class="sub">Le traqueur démarrera le ${longDate(r.start)}.</p>
+      <div class="actions" style="margin-top:22px">
+        <button class="btn primary" data-act="start-now">Démarrer maintenant</button>
+        <button class="btn ghost" data-act="stop">Annuler</button>
+      </div></div>`;
+  }
+  return `<div class="hero">
+    <h1>${stopped ? 'Traqueur en pause' : 'On commence ?'}</h1>
+    <p class="sub">${stopped ? `Arrêté le ${longDate(r.end)}. Les jours de pause ne comptent pas.` : 'Le traqueur démarre quand tu le décides.'}</p>
+    ${stopped ? '' : `<ul class="rules">
+      <li><b>1</b> Tu choisis une première habitude.</li>
+      <li><b>2</b> Toutes les deux semaines, tu en ajoutes une nouvelle.</li>
+      <li><b>3</b> Récap à la semaine, au mois et à l’année.</li>
+    </ul>`}
+    <div class="field" style="max-width:220px">
+      <label for="startDate">Date de départ</label>
+      <input type="date" id="startDate" value="${today()}" min="${today()}">
+    </div>
+    <button class="btn primary" data-act="start">${stopped ? 'Reprendre le traqueur' : 'Démarrer le traqueur'}</button>
+  </div>`;
+}
+
+function renderToday(p){
+  if (!isLive(p)) return renderIdle(p);
+  const t = today();
+  const n = activeDays(p);
+  const left = daysToNext(p);
+  const prog = ((CYCLE - left) / CYCLE) * 100;
+  let html = `
+    <h1>${cap(longDate(t))}</h1>
+    <p class="sub">Jour ${n} · ${currentHabits(p).length} habitude${currentHabits(p).length>1?'s':''} · nouvelle habitude ${left===1?'demain':'dans '+left+' jours'}</p>
+    <div class="progress"><i style="width:${Math.max(3,prog)}%"></i></div>`;
+  if (needNewHabit(p)){
+    const first = currentHabits(p).length === 0;
+    html += `<div class="banner"><span>${first ? 'Choisis ta première habitude.' : 'Deux semaines de tenues ! Place à une nouvelle habitude.'}</span><button data-act="pick">Choisir</button></div>`;
+  }
+  const hs = p.habits.filter(h => habitOn(h, t));
+  html += `<div class="list" style="margin-top:22px">${hs.map(h => habitCard(p, h)).join('')}</div>`;
+  if (!hs.length && !needNewHabit(p)) html += `<p class="muted">Aucune habitude aujourd'hui.</p>`;
+  return html;
+}
+
+function checkIcon(s){ return s === 'fail' ? ICON_X : ICON_CHECK; }
+function habitCard(p, h){
+  const t = today(), s = status(p, h, t), st = streak(p, h);
+  const stTxt = st > 0 ? `<span class="streak">${st} j d’affilée</span>` : '';
+  const edit = `<button class="edit" data-edit="${h.id}" title="Modifier" aria-label="Modifier"><span class="only-desk">Modifier</span><svg class="only-touch" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>`;
+
+  if (h.kind === 'check'){
+    return `<div class="card"><div class="row">
+      <button class="check ${s}" data-toggle="${h.id}" aria-label="Cocher">${ICON_CHECK}</button>
+      <div class="grow"><div class="title">${esc(habitName(h))}</div></div>${edit}${stTxt}
+    </div></div>`;
+  }
+
+  if (h.kind === 'wake'){
+    const e = (p.entries[h.id] || {})[t];
+    const ws = wakeState(h);
+    let meta, action = '';
+    if (s === 'done') meta = `Debout à ${e && e.t ? e.t : '—'} · validé`;
+    else if (s === 'fail') meta = e && e.auto ? `Raté · pas de check-in avant ${fmtMin(toMin(h.time)+GRACE)}` : 'Raté';
+    else if (s === 'skip') meta = `Ajouté après ${fmtMin(toMin(h.time)+GRACE)} · commence demain`;
+    else if (ws === 'closed') meta = `Ouverture du check-in à ${fmtMin(toMin(h.time)-WAKE_OPEN)}`;
+    else { meta = `À cocher avant ${fmtMin(toMin(h.time)+GRACE)}`; action = `<button class="btn primary sm" data-wake="${h.id}">Debout</button>`; }
+    return `<div class="card"><div class="row">
+      <span class="check ${s}">${checkIcon(s)}</span>
+      <div class="grow"><div class="title">${esc(habitName(h))}</div><div class="meta">${meta}</div></div>
+      ${action || edit}${action ? '' : stTxt}
+    </div></div>`;
+  }
+
+  if (h.kind === 'bed'){
+    const y = addDays(t, -1);
+    let meta, action = '', icon = 'pending';
+    if (counts(p, h, y)){
+      const ys = status(p, h, y);
+      icon = ys;
+      if (ys === 'pending'){
+        meta = `Hier soir, au lit avant ${h.time} ?`;
+        action = `<div class="actions"><button class="btn sm" data-bed="${h.id}" data-v="done">Oui</button><button class="btn sm" data-bed="${h.id}" data-v="fail">Non</button></div>`;
+      } else if (ys === 'skip') meta = 'Bilan demain matin';
+      else meta = `Hier soir : ${ys === 'done' ? 'au lit à l’heure' : 'raté'} · <button class="muted small" style="text-decoration:underline" data-bedundo="${h.id}">changer</button>`;
+    } else meta = 'Premier bilan demain matin';
+    return `<div class="card"><div class="row">
+      <span class="check ${icon}">${checkIcon(icon)}</span>
+      <div class="grow"><div class="title">${esc(habitName(h))}</div><div class="meta">${meta}</div></div>
+      ${action || edit}${action ? '' : stTxt}
+    </div></div>`;
+  }
+
+  // plan
+  const todos = p.todos[t] || [];
+  const done = todos.filter(x => x.done).length;
+  return `<div class="card">
+    <div class="row">
+      <span class="check ${s}">${checkIcon(s)}</span>
+      <div class="grow"><div class="title">${esc(habitName(h))}</div>
+        <div class="meta">${todos.length ? `Journée planifiée · ${done}/${todos.length} tâches faites` : 'Pas encore planifiée'}</div></div>
+      ${todos.length ? edit + stTxt : `<button class="btn primary sm" data-act="plan">Planifier</button>`}
+    </div>
+    ${todos.length ? `<ul class="todos">${todos.map(x => `
+      <li class="todo ${x.done?'done':''}">
+        <button class="box" data-todo="${x.id}" aria-label="Cocher">${ICON_CHECK}</button>
+        <span class="txt">${esc(x.text)}</span>
+        <button class="x" data-deltodo="${x.id}" aria-label="Supprimer">×</button>
+      </li>`).join('')}</ul>
+      <input type="text" class="add-todo" id="addTodo" placeholder="+ Ajouter une tâche">` : ''}
+  </div>`;
+}
+
+/* ---------- récap hebdo ---------- */
+function renderWeek(p){
+  const mon = mondayOf(cursor.week), sun = addDays(mon, 6), t = today();
+  const days = daysBetween(mon, sun);
+  const habits = p.habits.filter(h => days.some(d => habitOn(h, d) && tracked(p, d)));
+  const st = rangeStats(p, days);
+  const m1 = toDate(mon), m2 = toDate(sun);
+  const title = m1.getMonth() === m2.getMonth()
+    ? `${m1.getDate()} – ${m2.getDate()} ${MONTHS[m2.getMonth()]}`
+    : `${shortDate(mon)} – ${shortDate(sun)}`;
+  let html = navBar('week', `Semaine du ${title}`, mon < mondayOf(t)) + modeBar(p);
+  if (settings(p).chartMode) return html + chartList(p, 'week', mon);
+  html += statsRow(st, 'cette semaine');
+  if (!habits.length) return html + `<p class="muted" style="margin-top:24px">Rien de suivi cette semaine.</p>`;
+  html += `<h2>Détail</h2><div class="card"><table class="grid-week"><colgroup><col class="namecol">${days.map(()=>'<col>').join('')}</colgroup>
+    <tr><th></th>${days.map((d,i) => `<th class="${d===t?'today':''}">${DAYS_S[i]}<br><span style="font-weight:400">${toDate(d).getDate()}</span></th>`).join('')}</tr>
+    ${habits.map(h => `<tr><td class="name" title="${esc(habitName(h))}">${esc(habitName(h))}</td>${days.map(d => {
+      if (!counts(p, h, d)) return `<td><span class="cell none"></span></td>`;
+      const s = status(p, h, d);
+      const editable = d <= t && ((h.kind === 'check') || (h.kind === 'bed' && d < t));
+      const label = {done:'Fait',fail:'Raté',pending:'En attente',skip:'Non compté'}[s];
+      return editable
+        ? `<td><button class="cell ${s}" data-cell="${h.id}|${d}" title="${label} · cliquer pour changer"></button></td>`
+        : `<td><span class="cell ${s}" title="${label}${h.kind==='wake'||h.kind==='plan'?' · automatique':''}"></span></td>`;
+    }).join('')}</tr>`).join('')}
+  </table></div>`;
+  html += `<h2>Par habitude</h2>` + barsFor(p, habits, st);
+  return html;
+}
+
+/* ---------- récap mensuel ---------- */
+function heatColor(ratio){
+  const v = Math.round(18 + ratio * 82);
+  return `color-mix(in srgb, var(--accent) ${v}%, var(--surface))`;
+}
+function renderMonth(p){
+  const c = toDate(cursor.month), y = c.getFullYear(), m = c.getMonth(), t = today();
+  const first = keyOf(new Date(y, m, 1)), last = keyOf(new Date(y, m+1, 0));
+  const days = daysBetween(first, last);
+  const st = rangeStats(p, days);
+  let html = navBar('month', `${cap(MONTHS[m])} ${y}`, last < t) + modeBar(p);
+  if (settings(p).chartMode) return html + chartList(p, 'month', first);
+  html += statsRow(st, 'ce mois-ci');
+  const lead = (toDate(first).getDay() + 6) % 7;
+  html += `<h2>Calendrier</h2><div class="card"><div class="cal">${DAYS_S.map(d => `<div class="hd">${d}</div>`).join('')}${'<div></div>'.repeat(lead)}${days.map(d => {
+    const n = toDate(d).getDate();
+    const cls = d === t ? ' today' : '';
+    if (!tracked(p, d)) return `<div class="d${cls}">${n}</div>`;
+    const sc = dayScore(p, d);
+    if (!sc.total) return `<div class="d t${cls}">${n}</div>`;
+    const r = sc.done / sc.total;
+    return `<div class="d t${r > .55 ? ' dark' : ''}${cls}" style="background:${heatColor(r)};border-color:transparent" title="${shortDate(d)} · ${sc.done}/${sc.total}">${n}</div>`;
+  }).join('')}</div>
+  <div class="legend">0 %<i style="background:${heatColor(0)}"></i><i style="background:${heatColor(.5)}"></i><i style="background:${heatColor(1)}"></i>100 %</div></div>`;
+  const habits = p.habits.filter(h => st.per[h.id]);
+  if (habits.length) html += `<h2>Par habitude</h2>` + barsFor(p, habits, st);
+  return html;
+}
+
+/* ---------- récap annuel ---------- */
+function renderYear(p){
+  const y = toDate(cursor.year).getFullYear(), t = today();
+  const days = daysBetween(`${y}-01-01`, `${y}-12-31`);
+  const st = rangeStats(p, days);
+  let html = navBar('year', String(y), `${y}-12-31` < t) + modeBar(p);
+  if (settings(p).chartMode) return html + chartList(p, 'year', `${y}-01-01`);
+  html += statsRow(st, 'cette année');
+  html += `<h2>Mois par mois</h2><div class="card"><div class="year">`;
+  for (let m = 0; m < 12; m++){
+    const first = keyOf(new Date(y, m, 1)), last = keyOf(new Date(y, m+1, 0));
+    const md = daysBetween(first, last);
+    const ms = rangeStats(p, md);
+    html += `<div class="yr"><span class="m">${MONTHS_S[m]}</span><div class="sq">${md.map(d => {
+      if (!tracked(p, d)) return `<i title="${shortDate(d)}"></i>`;
+      const sc = dayScore(p, d);
+      if (!sc.total) return `<i class="t" title="${shortDate(d)}"></i>`;
+      return `<i class="t" style="background:${heatColor(sc.done/sc.total)}" title="${shortDate(d)} · ${sc.done}/${sc.total}"></i>`;
+    }).join('')}${'<i class="x"></i>'.repeat(31 - md.length)}</div><span class="p">${ms.rate == null ? '' : pct(ms.rate)}</span></div>`;
+  }
+  html += `</div></div>`;
+  const habits = p.habits.filter(h => st.per[h.id]);
+  if (habits.length) html += `<h2>Par habitude</h2>` + barsFor(p, habits, st);
+  return html;
+}
+
+function navBar(kind, title, canNext){
+  return `<div class="nav">
+    <button class="icon-btn" data-nav="${kind}|-1" aria-label="Précédent"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <h1>${title}</h1>
+    <button class="icon-btn" data-nav="${kind}|1" aria-label="Suivant" ${canNext ? '' : 'disabled style="opacity:.25;cursor:default"'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>`;
+}
+function statsRow(st, label){
+  return `<div class="stats">
+    <div class="stat"><b>${pct(st.rate)}</b><span>Réussite ${label}</span></div>
+    <div class="stat"><b>${st.perfect}</b><span>Jour${st.perfect>1?'s':''} parfait${st.perfect>1?'s':''}</span></div>
+    <div class="stat"><b>${st.best} j</b><span>Meilleure série</span></div>
+  </div><p class="muted small" style="margin:0">${st.trackedDays} jour${st.trackedDays>1?'s':''} suivi${st.trackedDays>1?'s':''} · ${st.done} réussite${st.done>1?'s':''} sur ${st.done+st.fail}</p>`;
+}
+function barsFor(p, habits, st){
+  return `<div class="card"><div class="bars">${habits.map(h => {
+    const x = st.per[h.id]; const r = x && x.total ? x.done / x.total : null;
+    return `<div class="bar-row"><span class="lbl">${esc(habitName(h))}${h.archived ? ' <span class="muted small">(retirée)</span>' : ''}</span>
+      <span class="pct">${x ? `${x.done}/${x.total}` : '—'}</span>
+      <div class="bar"><i style="width:${r == null ? 0 : r*100}%"></i></div></div>`;
+  }).join('')}</div></div>`;
+}
+
+/* ---------- événements ---------- */
+function bindCommon(){
+  const p = P();
+  $$('[data-view]').forEach(b => b.onclick = () => { view = b.dataset.view; render(); });
+  $$('[data-act]').forEach(b => b.onclick = e => action(b.dataset.act, e));
+  $$('[data-nav]').forEach(b => b.onclick = () => {
+    if (b.disabled) return;
+    const [k, dir] = b.dataset.nav.split('|'); const n = +dir;
+    const d = toDate(cursor[k]);
+    if (k === 'week') cursor.week = addDays(cursor.week, 7*n);
+    if (k === 'month') cursor.month = keyOf(new Date(d.getFullYear(), d.getMonth()+n, 1));
+    if (k === 'year') cursor.year = keyOf(new Date(d.getFullYear()+n, 0, 1));
+    render();
+  });
+  $$('[data-toggle]').forEach(b => b.onclick = () => {
+    const h = p.habits.find(x => x.id === b.dataset.toggle);
+    setEntry(p, h, today(), status(p, h, today()) === 'done' ? null : 'done'); render();
+  });
+  $$('[data-wake]').forEach(b => b.onclick = () => {
+    const h = p.habits.find(x => x.id === b.dataset.wake);
+    const ok = nowMin() <= toMin(h.time) + GRACE;
+    setEntry(p, h, today(), ok ? 'done' : 'fail', { t: nowHM() });
+    toast(ok ? 'Bien joué, réveil validé' : 'Trop tard pour aujourd’hui'); render();
+  });
+  $$('[data-bed]').forEach(b => b.onclick = () => {
+    const h = p.habits.find(x => x.id === b.dataset.bed);
+    setEntry(p, h, addDays(today(), -1), b.dataset.v); render();
+  });
+  $$('[data-bedundo]').forEach(b => b.onclick = () => {
+    const h = p.habits.find(x => x.id === b.dataset.bedundo);
+    setEntry(p, h, addDays(today(), -1), null); render();
+  });
+  $$('[data-cell]').forEach(b => b.onclick = () => {
+    const [id, d] = b.dataset.cell.split('|'); const h = p.habits.find(x => x.id === id);
+    const s = status(p, h, d);
+    const next = s === 'done' ? 'fail' : 'done';
+    setEntry(p, h, d, (d === today() && next === 'fail') ? null : next); render();
+  });
+  $$('[data-mode]').forEach(b => b.onclick = () => { settings(p).chartMode = b.dataset.mode === '1'; save(); render(); });
+  $$('[data-pin]').forEach(b => b.onclick = () => togglePin(p, b.dataset.pin));
+  $$('[data-edit]').forEach(b => b.onclick = () => editHabit(p.habits.find(x => x.id === b.dataset.edit)));
+  $$('[data-todo]').forEach(b => b.onclick = () => {
+    const x = (p.todos[today()] || []).find(x => x.id === b.dataset.todo); x.done = !x.done; save(); render();
+  });
+  $$('[data-deltodo]').forEach(b => b.onclick = () => {
+    p.todos[today()] = (p.todos[today()] || []).filter(x => x.id !== b.dataset.deltodo); save(); render();
+  });
+  const add = $('#addTodo');
+  if (add) add.onkeydown = e => {
+    if (e.key === 'Enter' && add.value.trim()){
+      (p.todos[today()] = p.todos[today()] || []).push({ id: uid(), text: add.value.trim(), done: false });
+      save(); render(); $('#addTodo') && $('#addTodo').focus();
+    }
+  };
+}
+
+function action(a, e){
+  const p = P();
+  if (a === 'profiles') return profilesModal();
+  if (a === 'palette') return palette();
+  if (a === 'menu') return menu(e);
+  if (a === 'pick') return pickHabit();
+  if (a === 'plan') return planModal(true);
+  if (a === 'start') return doStart($('#startDate') ? $('#startDate').value : today());
+  if (a === 'start-now'){ p.runs.pop(); return doStart(today()); }
+  if (a === 'stop') return doStop();
+  if (a === 'charts') return openCharts();
+  if (a === 'charts-setup') return chartsSetup();
+}
+
+function doStart(date){
+  const p = P();
+  if (isRunning(p)) { toast('Le traqueur est déjà lancé'); return; }
+  const go = () => {
+    startTracker(p, date);
+    view = 'today'; planDismissed = false;
+    toast(date > today() ? `Démarrage prévu le ${shortDate(date)}` : 'Traqueur démarré');
+    render(); maybePrompt();
+  };
+  if (!currentHabits(p).length) pickHabit({ title: 'Ta première habitude', onDone: go, required: true });
+  else go();
+}
+function doStop(){
+  const p = P();
+  if (!isRunning(p)) { toast('Le traqueur est déjà arrêté'); return; }
+  confirmModal('Arrêter le traqueur ?', 'Les jours suivants ne seront plus comptés. Tes données sont conservées et tu peux reprendre quand tu veux.', 'Arrêter', () => {
+    stopTracker(p); toast('Traqueur arrêté'); render();
+  });
+}
+
+/* ---------- modales ---------- */
+function openModal(html, { cls = '', dismiss = true } = {}){
+  closeModal();
+  const bd = document.createElement('div');
+  bd.className = 'backdrop'; bd.id = 'modal';
+  bd.innerHTML = `<div class="modal ${cls}" role="dialog" aria-modal="true">${html}</div>`;
+  if (dismiss) bd.addEventListener('mousedown', e => { if (e.target === bd) closeModal(); });
+  bd.dataset.dismiss = dismiss ? '1' : '';
+  document.body.appendChild(bd);
+  return bd.firstElementChild;
+}
+function closeModal(){ const m = $('#modal'); if (m) m.remove(); }
+const modalOpen = () => !!$('#modal');
+
+function confirmModal(title, text, ok, fn, danger){
+  const m = openModal(`<h3>${title}</h3><p class="muted">${text}</p>
+    <div class="foot"><button class="btn ghost" data-c>Annuler</button><button class="btn ${danger ? 'danger' : 'primary'}" data-ok>${ok}</button></div>`);
+  $('[data-c]', m).onclick = closeModal;
+  $('[data-ok]', m).onclick = () => { closeModal(); fn(); };
+  $('[data-ok]', m).focus();
+}
+
+function pickHabit(opts = {}){
+  const p = P();
+  const used = new Set(currentHabits(p).map(h => h.preset).filter(Boolean));
+  const list = PRESETS.filter(x => !used.has(x.key));
+  let sel = null;
+  const m = openModal(`
+    <h3>${opts.title || 'Nouvelle habitude'}</h3>
+    <p class="muted" style="margin:0">Choisis une proposition ou crée la tienne.</p>
+    <div class="opts">
+      ${list.map(x => `<div class="opt" data-k="${x.key}" tabindex="0" role="button">
+        <div>${esc(x.name)}</div>${x.desc ? `<div class="d">${esc(x.desc)}</div>` : ''}
+        ${x.time ? `<div class="extra" hidden><input type="time" value="${x.time}" data-time></div>` : ''}
+      </div>`).join('')}
+      <div class="opt" data-k="custom" tabindex="0" role="button">
+        <div>Créer une habitude</div><div class="d">Une case à cocher chaque jour : fait ou pas fait.</div>
+        <div class="extra" hidden><input type="text" placeholder="Ex. : Faire 20 pompes" data-custom maxlength="60"></div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" data-c>${opts.required ? 'Annuler' : 'Plus tard'}</button>
+      <button class="btn primary" data-ok disabled>Ajouter</button>
+    </div>`);
+  const ok = $('[data-ok]', m);
+  const refresh = () => {
+    const custom = $('[data-custom]', m);
+    ok.disabled = !sel || (sel === 'custom' && !custom.value.trim());
+  };
+  $$('.opt', m).forEach(o => {
+    const choose = () => {
+      if (sel === o.dataset.k) return;
+      sel = o.dataset.k;
+      $$('.opt', m).forEach(x => { x.classList.toggle('on', x === o); const ex = $('.extra', x); if (ex) ex.hidden = x !== o; });
+      const inp = $('.extra input', o); if (inp) setTimeout(() => inp.focus(), 0);
+      refresh();
+    };
+    o.onclick = choose;
+    o.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === o){ e.preventDefault(); choose(); } };
+  });
+  $('[data-custom]', m).oninput = refresh;
+  $('[data-custom]', m).onkeydown = e => { if (e.key === 'Enter' && !ok.disabled) ok.click(); };
+  $('[data-c]', m).onclick = closeModal;
+  ok.onclick = () => {
+    let data;
+    if (sel === 'custom') data = { kind: 'check', name: $('[data-custom]', m).value.trim() };
+    else {
+      const pr = PRESETS.find(x => x.key === sel);
+      const tEl = $(`.opt[data-k="${sel}"] [data-time]`, m);
+      data = { kind: pr.kind, name: pr.name, preset: pr.key, time: tEl ? (tEl.value || pr.time) : undefined };
+    }
+    closeModal();
+    const h = addHabit(p, data);
+    toast(`« ${habitName(h)} » ajoutée`);
+    if (opts.onDone) opts.onDone(h);
+    else { render(); maybePrompt(); }
+  };
+}
+
+function editHabit(h){
+  const p = P();
+  const timed = h.kind === 'wake' || h.kind === 'bed';
+  const m = openModal(`
+    <h3>${esc(habitName(h))}</h3>
+    <p class="muted" style="margin:0">Depuis le ${longDate(h.start)} · série actuelle ${streak(p,h)} j</p>
+    ${h.kind === 'check' ? `<div class="field"><label>Nom</label><input type="text" data-name value="${esc(h.name)}" maxlength="60"></div>` : ''}
+    ${timed ? `<div class="field"><label>${h.kind === 'wake' ? 'Heure de réveil' : 'Heure de coucher'}</label><input type="time" data-time value="${h.time}"></div>` : ''}
+    <div class="sep"></div>
+    <p class="muted small" style="margin:0">Retirer l'habitude garde son historique. Une place se libère : tu pourras la remplacer.</p>
+    <div class="foot" style="justify-content:space-between">
+      <button class="btn danger" data-del>Retirer</button>
+      <div class="actions"><button class="btn ghost" data-c>Fermer</button><button class="btn primary" data-ok>Enregistrer</button></div>
+    </div>`);
+  $('[data-c]', m).onclick = closeModal;
+  $('[data-ok]', m).onclick = () => {
+    const n = $('[data-name]', m), t = $('[data-time]', m);
+    if (n && n.value.trim()) h.name = n.value.trim();
+    if (t && t.value) h.time = t.value;
+    save(); closeModal(); render();
+  };
+  $('[data-del]', m).onclick = () => {
+    closeModal();
+    confirmModal('Retirer cette habitude ?', `« ${esc(habitName(h))} » ne sera plus suivie. Son historique reste dans les récaps.`, 'Retirer', () => {
+      if (h.start >= today()){ p.habits = p.habits.filter(x => x !== h); delete p.entries[h.id]; }
+      else h.archived = today();
+      save(); render(); maybePrompt();
+    }, true);
+  };
+}
+
+function planModal(force){
+  const p = P(), t = today();
+  const items = (p.todos[t] || []).map(x => ({ ...x }));
+  planDismissed = true;
+  const m = openModal(`
+    <h3>Planifie ta journée</h3>
+    <p class="muted" style="margin:0">${cap(longDate(t))}. Qu'est-ce que tu veux accomplir ?</p>
+    <ul class="todos" data-list style="margin-top:14px"></ul>
+    <input type="text" data-in placeholder="Ajoute une tâche puis Entrée" style="margin-top:6px">
+    <div class="foot"><button class="btn ghost" data-c>Plus tard</button><button class="btn primary" data-ok>Valider ma journée</button></div>`);
+  const list = $('[data-list]', m), inp = $('[data-in]', m), ok = $('[data-ok]', m);
+  const draw = () => {
+    list.innerHTML = items.map((x, i) => `<li class="todo"><span class="box"></span><span class="txt">${esc(x.text)}</span><button class="x" data-i="${i}" style="opacity:1">×</button></li>`).join('');
+    $$('[data-i]', list).forEach(b => b.onclick = () => { items.splice(+b.dataset.i, 1); draw(); });
+    ok.disabled = !items.length && !inp.value.trim();
+  };
+  inp.oninput = draw;
+  inp.onkeydown = e => { if (e.key === 'Enter' && inp.value.trim()){ items.push({ id: uid(), text: inp.value.trim(), done: false }); inp.value = ''; draw(); } };
+  $('[data-c]', m).onclick = () => { planDismissed = true; closeModal(); };
+  ok.onclick = () => {
+    if (inp.value.trim()) items.push({ id: uid(), text: inp.value.trim(), done: false });
+    if (!items.length) return;
+    p.todos[t] = items; save(); closeModal(); planDismissed = true;
+    toast('Journée planifiée'); render();
+  };
+  draw(); inp.focus();
+}
+
+function profilesModal(){
+  const ids = Object.keys(S.profiles);
+  const m = openModal(`
+    <h3>Profils</h3>
+    <p class="muted" style="margin:0">Chaque profil a ses habitudes, son traqueur et ses récaps.</p>
+    <div style="margin-top:12px">${ids.map(id => { const x = S.profiles[id]; return `
+      <div class="prof">
+        <span class="avatar">${esc(x.name.charAt(0).toUpperCase())}</span>
+        <div class="grow"><div class="title">${esc(x.name)}${id === S.current ? ' <span class="muted small">· actif</span>' : ''}</div>
+          <div class="meta">${isLive(x) ? 'En cours · jour ' + activeDays(x) : isScheduled(x) ? 'Démarre le ' + shortDate(lastRun(x).start) : x.runs.length ? 'En pause' : 'Pas démarré'} · ${currentHabits(x).length} habitude${currentHabits(x).length>1?'s':''}</div></div>
+        ${id !== S.current ? `<button class="btn sm" data-sw="${id}">Ouvrir</button>` : ''}
+        <button class="btn ghost sm" data-rn="${id}">Renommer</button>
+        <button class="btn ghost sm danger" data-rm="${id}">Supprimer</button>
+      </div>`; }).join('')}</div>
+    <div class="sep"></div>
+    <div class="row"><input type="text" data-new placeholder="Nouveau profil" maxlength="30"><button class="btn primary" data-add>Créer</button></div>
+    <div class="foot"><button class="btn ghost" data-c>Fermer</button></div>`);
+  $('[data-c]', m).onclick = closeModal;
+  const add = () => { const v = $('[data-new]', m).value.trim(); if (!v) return; createProfile(v); closeModal(); view = 'today'; render(); toast(`Profil « ${v} » créé`); };
+  $('[data-add]', m).onclick = add;
+  $('[data-new]', m).onkeydown = e => { if (e.key === 'Enter') add(); };
+  $$('[data-sw]', m).forEach(b => b.onclick = () => switchProfile(b.dataset.sw));
+  $$('[data-rn]', m).forEach(b => b.onclick = () => {
+    const x = S.profiles[b.dataset.rn];
+    const row = b.closest('.prof');
+    row.innerHTML = `<input type="text" value="${esc(x.name)}" maxlength="30"><button class="btn primary sm">OK</button>`;
+    const i = $('input', row); i.focus(); i.select();
+    const done = () => { if (i.value.trim()){ x.name = i.value.trim(); save(); } render(); profilesModal(); };
+    $('button', row).onclick = done; i.onkeydown = e => { if (e.key === 'Enter') done(); };
+  });
+  $$('[data-rm]', m).forEach(b => b.onclick = () => {
+    const x = S.profiles[b.dataset.rm];
+    confirmModal(`Supprimer « ${esc(x.name)} » ?`, 'Toutes ses habitudes et son historique seront effacés définitivement.', 'Supprimer', () => {
+      delete S.profiles[x.id];
+      if (S.current === x.id) S.current = Object.keys(S.profiles)[0] || null;
+      save(); render(); if (S.current) profilesModal();
+    }, true);
+  });
+}
+function switchProfile(id){
+  S.current = id; save(); closeModal(); planDismissed = false; view = 'today';
+  render(); toast(`Profil : ${S.profiles[id].name}`); maybePrompt();
+}
+
+function menu(e){
+  const old = $('.menu'); if (old){ old.remove(); return; }
+  const p = P();
+  const el = document.createElement('div'); el.className = 'menu';
+  el.innerHTML = `
+    ${isRunning(p) ? `<button data-m="stop">Arrêter le traqueur</button>` : `<button data-m="start">Démarrer le traqueur</button>`}
+    ${p.habits.some(h => h.kind === 'plan' && habitOn(h, today())) && isLive(p) ? `<button data-m="plan">Planifier ma journée</button>` : ''}
+    <button data-m="profiles">Profils</button>
+    <button data-m="charts-setup">Configurer mes graphiques</button>
+    <div class="sep"></div>
+    <button data-m="export">Exporter une sauvegarde</button>
+    <button data-m="import">Importer une sauvegarde</button>`;
+  e.currentTarget.parentElement.appendChild(el);
+  const close = ev => { if (!el.contains(ev.target) && !ev.target.closest('[data-act="menu"]')){ el.remove(); document.removeEventListener('mousedown', close); } };
+  setTimeout(() => document.addEventListener('mousedown', close), 0);
+  $$('[data-m]', el).forEach(b => b.onclick = () => { el.remove(); runCmd(b.dataset.m); });
+}
+
+function runCmd(c, arg){
+  if (c === 'start'){ view = 'today'; render(); return doStart(today()); }
+  if (c === 'stop') return doStop();
+  if (c === 'plan') return planModal(true);
+  if (c === 'profiles') return profilesModal();
+  if (c === 'pick') return pickHabit();
+  if (c === 'export') return exportData();
+  if (c === 'charts') return openCharts(arg);
+  if (c === 'charts-setup') return chartsSetup();
+  if (c === 'import') return $('#importFile').click();
+  if (c === 'view'){ view = arg; render(); return; }
+  if (c === 'switch') return switchProfile(arg);
+  if (c === 'newprofile'){
+    if (arg){ createProfile(arg); view = 'today'; render(); toast(`Profil « ${arg} » créé`); return; }
+    return profilesModal();
+  }
+}
+
+/* Palette de commandes : Ctrl/Cmd + K */
+function palette(){
+  const p = P();
+  const base = () => {
+    const c = [];
+    if (!isRunning(p)) c.push(['Démarrer le traqueur', 'start', null, 'démarrer start lancer commencer reprendre']);
+    else c.push(['Arrêter le traqueur', 'stop', null, 'arrêter stop pause stopper']);
+    if (needNewHabit(p)) c.push(['Choisir une nouvelle habitude', 'pick', null, 'ajouter habitude nouvelle']);
+    if (isLive(p) && p.habits.some(h => h.kind === 'plan' && habitOn(h, today()))) c.push(['Planifier ma journée', 'plan', null, 'todo planifier tâches']);
+    c.push(['Aujourd’hui', 'view', 'today', 'aujourdhui jour'], ['Récap de la semaine', 'view', 'week', 'semaine hebdo récap'], ['Récap du mois', 'view', 'month', 'mois mensuel récap'], ['Récap de l’année', 'view', 'year', 'année annuel récap']);
+    for (const id of Object.keys(S.profiles)) if (id !== S.current) c.push([`Ouvrir le profil ${S.profiles[id].name}`, 'switch', id, 'profil changer ' + S.profiles[id].name]);
+    c.push(['Voir les graphiques de la semaine', 'charts', 'week', 'graphiques graphique courbe semaine'], ['Voir les graphiques du mois', 'charts', 'month', 'graphiques graphique mois'], ['Voir les graphiques de l\u2019année', 'charts', 'year', 'graphiques graphique année'], ['Configurer mes graphiques', 'charts-setup', null, 'graphiques épingler configurer accueil']);
+    c.push(['Gérer les profils', 'profiles', null, 'profils'], ['Exporter une sauvegarde', 'export', null, 'export sauvegarde'], ['Importer une sauvegarde', 'import', null, 'import']);
+    return c;
+  };
+  const m = openModal(`<input type="text" data-q placeholder="Une commande… (démarrer, arrêter, profil…)"><ul data-l></ul>`, { cls: 'palette' });
+  const q = $('[data-q]', m), ul = $('[data-l]', m);
+  let items = [], idx = 0;
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const draw = () => {
+    const v = norm(q.value.trim());
+    items = base().filter(([l,,,k]) => !v || v.split(/\s+/).every(w => norm(l + ' ' + k).includes(w)));
+    const mNew = q.value.trim().match(/^(?:nouveau profil|new profile|profil\s*\+)\s+(.+)$/i);
+    if (mNew) items.unshift([`Créer le profil « ${mNew[1]} »`, 'newprofile', mNew[1]]);
+    idx = Math.min(idx, Math.max(0, items.length - 1));
+    ul.innerHTML = items.length ? items.map(([l], i) => `<li class="${i===idx?'on':''}" data-i="${i}">${esc(l)}<span class="only-desk">${i===idx?'Entrée':''}</span></li>`).join('')
+      : `<li style="cursor:default"><span>Aucune commande. Essaie « nouveau profil Léa ».</span></li>`;
+    $$('[data-i]', ul).forEach(li => { li.onmouseenter = () => { idx = +li.dataset.i; draw(); }; li.onclick = () => exec(+li.dataset.i); });
+  };
+  const exec = i => { const it = items[i]; if (!it) return; closeModal(); runCmd(it[1], it[2]); };
+  q.oninput = () => { idx = 0; draw(); };
+  q.onkeydown = e => {
+    if (e.key === 'ArrowDown'){ e.preventDefault(); idx = Math.min(items.length-1, idx+1); draw(); }
+    if (e.key === 'ArrowUp'){ e.preventDefault(); idx = Math.max(0, idx-1); draw(); }
+    if (e.key === 'Enter') exec(idx);
+  };
+  draw(); q.focus();
+}
+
+/* ---------- import / export ---------- */
+async function exportData(){
+  const name = `habitudes-sauvegarde-${today()}.json`;
+  if (Native && Native.exportFile){
+    try { const ok = await Native.exportFile(name, JSON.stringify(S, null, 2)); if (ok) toast('Sauvegarde exportée'); }
+    catch(e){ if (!/cancel/i.test(String(e && e.message))) toast('Export impossible'); }
+    return;
+  }
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Sauvegarde exportée');
+}
+$('#importFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || typeof d.profiles !== 'object') throw 0;
+      confirmModal('Importer cette sauvegarde ?', 'Les données actuelles seront remplacées.', 'Importer', () => {
+        S = d; if (!S.profiles[S.current]) S.current = Object.keys(S.profiles)[0] || null;
+        save(); render(); toast('Sauvegarde importée');
+      });
+    } catch(err){ toast('Fichier invalide'); }
+  };
+  r.readAsText(f); e.target.value = '';
+};
+
+/* ---------- divers ---------- */
+let toastT;
+function toast(msg){
+  const old = $('.toast'); if (old) old.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2200);
+}
+
+/* Ce qui s'affiche à l'ouverture : nouvelle habitude due, puis planning du jour */
+function maybePrompt(){
+  const p = P(); if (!p || modalOpen() || !isLive(p)) return;
+  if (needNewHabit(p)){
+    const first = currentHabits(p).length === 0;
+    return pickHabit({ title: first ? 'Ta première habitude' : 'C’est l’heure d’une nouvelle habitude' });
+  }
+  const t = today();
+  if (!planDismissed && p.habits.some(h => h.kind === 'plan' && counts(p, h, t)) && !(p.todos[t] && p.todos[t].length)
+      && !(p.entries[p.habits.find(h => h.kind === 'plan' && habitOn(h, t)).id] || {})[t]) planModal();
+}
+
+function signature(){
+  const p = P(); if (!p) return '';
+  return today() + '|' + p.habits.filter(h => h.kind === 'wake').map(h => wakeState(h)).join(',');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); if (P()){ if ($('.palette')) closeModal(); else palette(); } }
+  const a = document.activeElement;
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'g' && P() && !modalOpen() && !(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))){ e.preventDefault(); openCharts(); }
+  if (e.key === 'Escape'){ const m = $('#modal'); if (m && m.dataset.dismiss){ if ($('[data-in]', m)) planDismissed = true; closeModal(); } const mn = $('.menu'); if (mn) mn.remove(); }
+});
+
+/* Horloge : vérifie l'heure de l'ordinateur toutes les 20 s */
+setInterval(() => {
+  if (!P()) return;
+  const changedDay = today() !== lastDay;
+  if (changedDay){ lastDay = today(); planDismissed = false; }
+  const changed = autoCheck();
+  const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
+  if ((changed || changedDay || signature() !== lastSig) && !typing){ render(); if (changedDay) maybePrompt(); }
+}, 20000);
+let resizeT;
+window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { hideTip(); drawCharts(); }, 120); });
+window.addEventListener('scroll', hideTip, { passive: true });
+document.addEventListener('visibilitychange', () => { const a = document.activeElement; if (!document.hidden && P() && !modalOpen() && !(a && a.tagName === 'INPUT')) render(); });
+
+/* =========================================================
+   Graphiques
+   ========================================================= */
+const ICON_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5M9 3h6l-1 6 3 4H7l3-4z"/></svg>';
+const CHARTS = {
+  trend:   { title: 'Évolution de la réussite', periods: ['week','month','year'] },
+  stack:   { title: 'Réussites et ratés', periods: ['week','month','year'] },
+  habits:  { title: 'Réussite par habitude', periods: ['week','month','year'] },
+  weekday: { title: 'Réussite par jour de la semaine', periods: ['month','year'] },
+  wake:    { title: 'Heure de réveil', periods: ['week','month','year'], needs: p => p.habits.some(h => h.kind === 'wake') },
+};
+const PERIOD_NAME = { week: 'Semaine', month: 'Mois', year: 'Année' };
+const PERIOD_NOW = { week: 'Cette semaine', month: 'Ce mois-ci', year: 'Cette année' };
+let chartSpecs = [];
+
+const settings = p => p.settings || (p.settings = { chartMode: false, pinned: [] });
+const isPinned = (p, k, per) => settings(p).pinned.includes(k + '|' + per);
+function togglePin(p, id){
+  const st = settings(p), i = st.pinned.indexOf(id);
+  if (i >= 0) st.pinned.splice(i, 1); else st.pinned.push(id);
+  save(); render();
+  toast(i >= 0 ? 'Retiré de l’accueil' : 'Épinglé : visible sur Aujourd’hui à chaque ouverture');
+}
+function openCharts(period){
+  const p = P(); if (!p) return;
+  const st = settings(p);
+  if (period){ view = period; st.chartMode = true; }
+  else if (view === 'today'){ view = 'week'; st.chartMode = true; }
+  else st.chartMode = !st.chartMode;
+  save(); render();
+}
+function modeBar(p){
+  const on = settings(p).chartMode;
+  return `<div class="toolbar"><div class="seg" role="tablist">
+      <button role="tab" data-mode="0" class="${on ? '' : 'on'}" aria-selected="${!on}">Résumé</button>
+      <button role="tab" data-mode="1" class="${on ? 'on' : ''}" aria-selected="${on}">Graphiques</button>
+    </div><span class="muted small only-desk">Touche <span class="kbd">G</span></span></div>`;
+}
+const chartsFor = (p, period) => Object.keys(CHARTS).filter(k => CHARTS[k].periods.includes(period) && (!CHARTS[k].needs || CHARTS[k].needs(p)));
+function chartList(p, period, anchor){
+  return `<div class="charts">${chartsFor(p, period).map(k => chartCard(p, k, period, anchor, false)).join('')}</div>`;
+}
+function pinnedSection(p){
+  const pins = settings(p).pinned.filter(id => { const [k, per] = id.split('|'); return CHARTS[k] && chartsFor(p, per).includes(k); });
+  let html = `<h2 class="sec-head" style="margin-top:34px"><span>Mes graphiques</span><button data-act="charts-setup">Configurer</button></h2>`;
+  if (!pins.length) return html + `<div class="pin-hint"><span>Épingle un graphique pour le retrouver ici à chaque ouverture.</span><button class="btn sm" data-act="charts-setup">Choisir</button></div>`;
+  return html + `<div class="charts">${pins.map(id => { const [k, per] = id.split('|'); return chartCard(p, k, per, today(), true); }).join('')}</div>`;
+}
+
+/* --- découpage d'une période --- */
+function periodInfo(period, anchor){
+  if (period === 'week'){
+    const mon = mondayOf(anchor), days = daysBetween(mon, addDays(mon, 6));
+    return { days, buckets: days.map((d, i) => ({ label: DAYS_S[i], long: cap(longDate(d)), days: [d] })), show: fitLabel };
+  }
+  if (period === 'month'){
+    const c = toDate(anchor), first = keyOf(new Date(c.getFullYear(), c.getMonth(), 1)), last = keyOf(new Date(c.getFullYear(), c.getMonth()+1, 0));
+    const days = daysBetween(first, last);
+    return { days, buckets: days.map(d => ({ label: String(toDate(d).getDate()), long: cap(longDate(d)), days: [d] })), show: i => i === 0 || (i+1) % 5 === 0 };
+  }
+  const y = toDate(anchor).getFullYear();
+  const buckets = MONTHS.map((m, i) => ({ label: MONTHS_S[i], long: cap(m) + ' ' + y, days: daysBetween(keyOf(new Date(y, i, 1)), keyOf(new Date(y, i+1, 0))) }));
+  return { days: daysBetween(`${y}-01-01`, `${y}-12-31`), buckets, show: fitLabel };
+}
+const fitLabel = (i, band) => band >= 30 || i % Math.ceil(30 / band) === 0;
+function niceStep(x){ const pw = Math.pow(10, Math.floor(Math.log10(Math.max(x, 1)))); const f = x / pw; return Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pw); }
+
+/* --- construction des données de chaque graphique --- */
+function buildSpec(p, key, period, anchor){
+  const info = periodInfo(period, anchor), t = today();
+  const total = rangeStats(p, info.days);
+  const B = info.buckets.map(b => ({ ...b, st: rangeStats(p, b.days) }));
+  const labels = B.map(b => b.label);
+  const has = total.done + total.fail > 0;
+
+  if (key === 'trend'){
+    const values = B.map(b => b.st.rate == null ? null : Math.round(b.st.rate * 100));
+    return { type: 'line', area: true, endLabel: true, labels, show: info.show, values, yMin: 0, yMax: 100, ticks: [0, 50, 100], fmt: v => v + ' %',
+      empty: !has, sub: has ? `Moyenne ${pct(total.rate)}` : '',
+      tips: B.map((b, i) => ({ title: b.long, rows: values[i] == null ? [[null, 'Pas de données', '']] : [['var(--accent)', 'Réussite', values[i] + ' %'], [null, 'Habitudes tenues', `${b.st.done}/${b.st.done + b.st.fail}`]] })),
+      table: { head: ['', 'Réussite', 'Tenues'], rows: B.filter(b => b.st.done + b.st.fail).map(b => [b.long, pct(b.st.rate), `${b.st.done}/${b.st.done + b.st.fail}`]) } };
+  }
+  if (key === 'stack'){
+    const done = B.map(b => b.st.done), fail = B.map(b => b.st.fail);
+    const mx = Math.max(1, ...B.map(b => b.st.done + b.st.fail));
+    const step = niceStep(mx / 3), yMax = Math.ceil(mx / step) * step;
+    const ticks = []; for (let v = 0; v <= yMax; v += step) ticks.push(v);
+    return { type: 'cols', labels, show: info.show, yMax, ticks, fmt: v => String(v),
+      stacks: [{ values: done, color: 'var(--accent)', label: 'Réussies' }, { values: fail, color: 'var(--chart-muted)', label: 'Ratées' }],
+      legend: `<div class="lgd"><span><i style="background:var(--accent)"></i>Réussies</span><span><i style="background:var(--chart-muted)"></i>Ratées</span></div>`,
+      empty: !has, sub: has ? `${total.done} réussie${total.done > 1 ? 's' : ''} · ${total.fail} ratée${total.fail > 1 ? 's' : ''}` : '',
+      tips: B.map(b => ({ title: b.long, rows: b.st.done + b.st.fail ? [['var(--accent)', 'Réussies', b.st.done], ['var(--chart-muted)', 'Ratées', b.st.fail]] : [[null, 'Pas de données', '']] })),
+      table: { head: ['', 'Réussies', 'Ratées'], rows: B.filter(b => b.st.done + b.st.fail).map(b => [b.long, b.st.done, b.st.fail]) } };
+  }
+  if (key === 'weekday'){
+    const agg = DAYS_S.map(() => ({ done: 0, total: 0 }));
+    for (const d of info.days){
+      if (d > t) break;
+      const s = rangeStats(p, [d]); const w = (toDate(d).getDay() + 6) % 7;
+      agg[w].done += s.done; agg[w].total += s.done + s.fail;
+    }
+    const values = agg.map(a => a.total ? Math.round(a.done / a.total * 100) : null);
+    let bi = -1; values.forEach((v, i) => { if (v != null && (bi < 0 || v > values[bi])) bi = i; });
+    const full = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    return { type: 'cols', labels: DAYS_S, show: fitLabel, yMax: 100, ticks: [0, 50, 100], fmt: v => v + ' %',
+      stacks: [{ values: values.map(v => v || 0), color: 'var(--accent)', label: 'Réussite' }],
+      empty: !has, sub: bi >= 0 ? `Meilleur jour : ${full[bi]} (${values[bi]} %)` : '',
+      tips: agg.map((a, i) => ({ title: cap(full[i]), rows: a.total ? [['var(--accent)', 'Réussite', values[i] + ' %'], [null, 'Habitudes tenues', `${a.done}/${a.total}`]] : [[null, 'Pas de données', '']] })),
+      table: { head: ['', 'Réussite', 'Tenues'], rows: agg.map((a, i) => [cap(full[i]), a.total ? values[i] + ' %' : '—', `${a.done}/${a.total}`]) } };
+  }
+  if (key === 'habits'){
+    const rows = p.habits.filter(h => total.per[h.id]).map(h => ({ name: habitName(h) + (h.archived ? ' (retirée)' : ''), ...total.per[h.id], r: total.per[h.id].done / total.per[h.id].total }))
+      .sort((a, b) => b.r - a.r);
+    return { type: 'hbar', rows, empty: !rows.length, sub: rows.length ? 'De la mieux tenue à la moins tenue' : '' };
+  }
+  if (key === 'wake'){
+    const wh = p.habits.filter(h => h.kind === 'wake');
+    const cur = wh.find(h => !h.archived) || wh[wh.length - 1];
+    const target = toMin(cur.time);
+    const data = B.map(b => {
+      const times = [], fails = { n: 0 };
+      for (const d of b.days){ if (d > t) break; for (const h of wh){ if (!counts(p, h, d)) continue; const e = (p.entries[h.id] || {})[d]; const s = status(p, h, d);
+        if (s === 'done' && e && e.t) times.push(toMin(e.t)); else if (s === 'fail') fails.n++; } }
+      return { avg: times.length ? Math.round(times.reduce((a, c) => a + c, 0) / times.length) : null, n: times.length, fails: fails.n };
+    });
+    const vals = data.map(x => x.avg);
+    const known = vals.filter(v => v != null);
+    let lo = Math.min(target - 60, ...known), hi = Math.max(target + 60, ...known);
+    lo = Math.floor(lo / 30) * 30; hi = Math.ceil(hi / 30) * 30;
+    const ticks = []; const st = (hi - lo) > 240 ? 60 : 30; for (let v = lo; v <= hi; v += st) ticks.push(v);
+    const avgAll = known.length ? Math.round(known.reduce((a, c) => a + c, 0) / known.length) : null;
+    const single = period !== 'year';
+    return { type: 'line', area: false, endLabel: false, labels, show: info.show, values: vals, yMin: lo, yMax: hi, ticks, fmt: fmtMin, invert: true,
+      refs: [{ v: target, label: 'objectif' }, { v: target + GRACE, label: 'limite' }],
+      empty: !known.length && !data.some(x => x.fails), sub: `${avgAll != null ? (single ? 'Lever moyen ' : 'Moyenne ') + fmtMin(avgAll) + ' · ' : ''}objectif ${cur.time}`,
+      tips: B.map((b, i) => ({ title: b.long, rows: data[i].avg == null
+        ? [[null, data[i].fails ? 'Raté' : 'Pas de données', data[i].fails ? (single ? 'pas de check-in' : data[i].fails + ' j') : '']]
+        : single ? [['var(--accent)', 'Debout à', fmtMin(data[i].avg)]]
+        : [['var(--accent)', 'Lever moyen', fmtMin(data[i].avg)], [null, 'Jours validés', data[i].n], [null, 'Jours ratés', data[i].fails]] })),
+      table: { head: ['', single ? 'Debout à' : 'Lever moyen'], rows: B.map((b, i) => [b.long, data[i].avg == null ? (data[i].fails ? 'Raté' : '—') : fmtMin(data[i].avg)]).filter(r => r[1] !== '—') } };
+  }
+}
+
+function chartCard(p, key, period, anchor, onToday){
+  const spec = buildSpec(p, key, period, anchor);
+  const idx = chartSpecs.push(spec) - 1;
+  const on = isPinned(p, key, period);
+  const sub = (onToday ? PERIOD_NOW[period] + (spec.sub ? ' · ' : '') : '') + (spec.sub || '');
+  let body;
+  if (spec.empty) body = `<p class="muted small" style="margin:0">Pas encore de données pour cette période.</p>`;
+  else if (spec.type === 'hbar') body = `<div class="hbars">${spec.rows.map(r => `<div class="hb"><span class="n">${esc(r.name)}</span><span class="v">${Math.round(r.r * 100)} % <span>· ${r.done}/${r.total}</span></span><div class="track"><i style="width:${Math.max(r.r * 100, r.done ? 2 : 0)}%"></i></div></div>`).join('')}</div>`;
+  else body = (spec.legend || '') + `<div class="chart" data-k="${idx}"></div>` + tableHtml(spec);
+  return `<div class="card">
+    <div class="chart-head"><div><div class="chart-title">${CHARTS[key].title}</div>${sub ? `<div class="chart-sub">${sub}</div>` : ''}</div>
+      <button class="pin ${on ? 'on' : ''}" data-pin="${key}|${period}" title="${on ? 'Retirer de l’accueil' : 'Afficher sur Aujourd’hui à chaque ouverture'}">${ICON_PIN}<span>${on ? 'Épinglé' : 'Épingler'}</span></button>
+    </div>${body}</div>`;
+}
+function tableHtml(spec){
+  if (!spec.table || !spec.table.rows.length) return '';
+  return `<details class="data"><summary>Voir les données</summary><table><tr>${spec.table.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${spec.table.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></details>`;
+}
+
+/* --- dessin SVG --- */
+function drawCharts(){
+  $$('.chart[data-k]').forEach(el => {
+    const spec = chartSpecs[+el.dataset.k]; if (!spec) return;
+    const W = Math.max(240, el.clientWidth);
+    el.innerHTML = spec.type === 'line' ? svgLine(spec, W) : svgCols(spec, W);
+    const xh = $('.xh', el);
+    $$('.hit', el).forEach(r => {
+      const i = +r.dataset.i;
+      const on = e => {
+        $$('.hit.on', el).forEach(x => x.classList.remove('on')); r.classList.add('on');
+        if (xh){ xh.setAttribute('x1', r.dataset.x); xh.setAttribute('x2', r.dataset.x); xh.style.opacity = 1; }
+        $$('circle[data-d]', el).forEach(c => c.setAttribute('r', c.dataset.d === String(i) ? 5.5 : 4));
+        showTip(spec.tips[i], e, r);
+      };
+      const off = () => { r.classList.remove('on'); if (xh) xh.style.opacity = 0; $$('circle[data-d]', el).forEach(c => c.setAttribute('r', 4)); hideTip(); };
+      r.addEventListener('pointerenter', on); r.addEventListener('pointermove', on); r.addEventListener('focus', on);
+      r.addEventListener('pointerleave', off); r.addEventListener('blur', off);
+    });
+  });
+}
+function svgLine(spec, W){
+  const H = 190, ml = 44, mr = spec.endLabel ? 46 : 54, mt = 12, mb = 26;
+  const w = W - ml - mr, h = H - mt - mb, n = spec.labels.length, band = w / n;
+  const X = i => ml + (i + .5) * band;
+  const Y = v => spec.invert ? mt + (v - spec.yMin) / (spec.yMax - spec.yMin) * h : mt + h - (v - spec.yMin) / (spec.yMax - spec.yMin) * h;
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Graphique en courbe">`;
+  for (const tk of spec.ticks) s += `<line class="grid" x1="${ml}" x2="${ml + w}" y1="${Y(tk)}" y2="${Y(tk)}"/><text x="${ml - 8}" y="${Y(tk) + 4}" text-anchor="end">${spec.fmt(tk)}</text>`;
+  for (const r of spec.refs || []) s += `<line class="ref" x1="${ml}" x2="${ml + w}" y1="${Y(r.v)}" y2="${Y(r.v)}"/><text x="${ml + w + 6}" y="${Y(r.v) + 4}">${r.label}</text>`;
+  const segs = []; let seg = [];
+  spec.values.forEach((v, i) => { if (v == null){ if (seg.length) segs.push(seg); seg = []; } else seg.push([X(i), Y(v)]); });
+  if (seg.length) segs.push(seg);
+  const base = Y(spec.yMin);
+  for (const sg of segs){
+    const d = 'M' + sg.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('L');
+    if (spec.area && sg.length > 1) s += `<path d="${d}L${sg[sg.length-1][0].toFixed(1)},${base}L${sg[0][0].toFixed(1)},${base}Z" fill="var(--accent)" fill-opacity=".1"/>`;
+    if (sg.length > 1) s += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  s += `<line class="xh" x1="0" x2="0" y1="${mt}" y2="${mt + h}" stroke="var(--muted)" stroke-width="1" style="opacity:0;pointer-events:none"/>`;
+  spec.values.forEach((v, i) => { if (v != null) s += `<circle data-d="${i}" cx="${X(i)}" cy="${Y(v)}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" style="pointer-events:none"/>`; });
+  if (spec.endLabel){ let li = -1; spec.values.forEach((v, i) => { if (v != null) li = i; }); if (li >= 0) s += `<text class="strong" x="${X(li) + 9}" y="${Y(spec.values[li]) + 4}">${spec.fmt(spec.values[li])}</text>`; }
+  spec.labels.forEach((l, i) => { if (spec.show(i, band)) s += `<text x="${X(i)}" y="${H - 6}" text-anchor="middle">${l}</text>`; });
+  spec.labels.forEach((l, i) => { s += `<rect class="hit" data-i="${i}" data-x="${X(i)}" x="${ml + i * band}" y="${mt}" width="${band}" height="${h}" tabindex="0"/>`; });
+  return s + '</svg>';
+}
+function roundedTop(x, y, w, h, r){
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+function svgCols(spec, W){
+  const H = 190, ml = 44, mr = 12, mt = 12, mb = 26;
+  const w = W - ml - mr, h = H - mt - mb, n = spec.labels.length, band = w / n;
+  const bw = Math.min(24, Math.max(4, band * .62));
+  const Y = v => mt + h - v / spec.yMax * h;
+  let s = `<svg width="${W}" height="${H}" role="img" aria-label="Graphique en colonnes">`;
+  for (const tk of spec.ticks) s += `<line class="grid" x1="${ml}" x2="${ml + w}" y1="${Y(tk)}" y2="${Y(tk)}"/><text x="${ml - 8}" y="${Y(tk) + 4}" text-anchor="end">${spec.fmt(tk)}</text>`;
+  for (let i = 0; i < n; i++){
+    const x = ml + i * band + (band - bw) / 2;
+    const parts = spec.stacks.map(st => st.values[i] || 0);
+    let top = -1; parts.forEach((v, k) => { if (v > 0) top = k; });
+    let yb = Y(0), drawn = false;
+    parts.forEach((v, k) => {
+      if (!v) return;
+      const hh = v / spec.yMax * h, y0 = yb - hh, bottom = yb - (drawn ? 2 : 0);
+      const hgt = Math.max(1, bottom - y0);
+      s += k === top
+        ? `<path d="${roundedTop(x, y0, bw, hgt, 4)}" fill="${spec.stacks[k].color}" style="pointer-events:none"/>`
+        : `<rect x="${x}" y="${y0}" width="${bw}" height="${hgt}" fill="${spec.stacks[k].color}" style="pointer-events:none"/>`;
+      yb = y0; drawn = true;
+    });
+    if (spec.show(i, band)) s += `<text x="${ml + (i + .5) * band}" y="${H - 6}" text-anchor="middle">${spec.labels[i]}</text>`;
+  }
+  for (let i = 0; i < n; i++) s += `<rect class="hit" data-i="${i}" x="${ml + i * band}" y="${mt}" width="${band}" height="${h}" tabindex="0"/>`;
+  return s + '</svg>';
+}
+
+/* --- infobulle (textContent uniquement) --- */
+function showTip(tip, e, anchorEl){
+  if (!tip) return;
+  let el = $('.tip');
+  if (!el){ el = document.createElement('div'); el.className = 'tip'; document.body.appendChild(el); }
+  el.textContent = '';
+  const t = document.createElement('div'); t.className = 't'; t.textContent = tip.title; el.appendChild(t);
+  for (const [color, label, value] of tip.rows){
+    const r = document.createElement('div'); r.className = 'r';
+    if (color){ const k = document.createElement('span'); k.className = 'k'; k.style.background = color; r.appendChild(k); }
+    const l = document.createElement('span'); l.className = 'l'; l.textContent = label; r.appendChild(l);
+    const b = document.createElement('b'); b.textContent = value; r.appendChild(b);
+    el.appendChild(r);
+  }
+  let x, y;
+  if (e && e.clientX != null && e.type !== 'focus'){ x = e.clientX + 14; y = e.clientY + 14; }
+  else { const bb = anchorEl.getBoundingClientRect(); x = bb.left + bb.width / 2 + 10; y = bb.top + 20; }
+  const tw = el.offsetWidth, th = el.offsetHeight;
+  if (x + tw > innerWidth - 8) x = Math.max(8, x - tw - 28);
+  if (y + th > innerHeight - 8) y = Math.max(8, y - th - 28);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+function hideTip(){ const el = $('.tip'); if (el) el.remove(); }
+
+/* --- configuration des graphiques épinglés --- */
+function chartsSetup(){
+  const p = P(); if (!p) return;
+  const st = settings(p);
+  const draw = () => {
+    const m = openModal(`
+      <h3>Mes graphiques</h3>
+      <p class="muted" style="margin:0">Ceux que tu choisis s'affichent sur « Aujourd'hui » à chaque ouverture de l'app, toujours sur la période en cours.</p>
+      <div style="margin-top:12px">${Object.keys(CHARTS).map(k => {
+        const ok = !CHARTS[k].needs || CHARTS[k].needs(p);
+        return `<div class="setup-row"><div><div>${CHARTS[k].title}</div>${ok ? '' : '<div class="meta">Nécessite l’habitude « Se réveiller »</div>'}</div>
+          <div class="chips">${['week','month','year'].map(per => CHARTS[k].periods.includes(per)
+            ? `<button class="chipt ${isPinned(p, k, per) ? 'on' : ''}" data-sp="${k}|${per}" ${ok ? '' : 'disabled'}>${PERIOD_NAME[per]}</button>` : '').join('')}</div></div>`;
+      }).join('')}</div>
+      <label class="check-line"><input type="checkbox" data-cm ${st.chartMode ? 'checked' : ''}> Ouvrir les récaps directement en mode Graphiques</label>
+      <div class="foot"><button class="btn primary" data-c>Terminé</button></div>`);
+    $$('[data-sp]', m).forEach(b => b.onclick = () => {
+      const id = b.dataset.sp, i = st.pinned.indexOf(id);
+      if (i >= 0) st.pinned.splice(i, 1); else st.pinned.push(id);
+      save(); b.classList.toggle('on', i < 0); render(); if (!modalOpen()) draw();
+    });
+    $('[data-cm]', m).onchange = e => { st.chartMode = e.target.checked; save(); render(); };
+    $('[data-c]', m).onclick = closeModal;
+  };
+  draw();
+}
+
+/* App installable (iPhone / Android / PC) quand elle est servie en ligne */
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !Native) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+function installHint(){
+  if (standalone || Native || !/^https?:$/.test(location.protocol)) return;
+  let hidden = false; try { hidden = localStorage.getItem('habitudes.installHint') === '0'; } catch(e){}
+  if (hidden || $('.install')) return;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const el = document.createElement('div'); el.className = 'install';
+  el.innerHTML = `<img src="apple-touch-icon.png" alt=""><div>${ios
+    ? 'Installe l\u2019app : touche <b>Partager</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px"><path d="M12 15V3M8 7l4-4 4 4M5 12v8h14v-8"/></svg> puis <b>Sur l\u2019écran d\u2019accueil</b>.'
+    : 'Installe l\u2019app : menu du navigateur → <b>Installer l\u2019application</b>.'}</div><button class="x" aria-label="Fermer">×</button>`;
+  $('.x', el).onclick = () => { try { localStorage.setItem('habitudes.installHint', '0'); } catch(e){} el.remove(); };
+  app.prepend(el);
+}
+
+async function boot(){
+  if (Native){
+    try {
+      const raw = await Native.load();
+      const d = raw ? JSON.parse(raw) : null;
+      if (d && d.profiles) S = d;
+      else if (Object.keys(S.profiles).length) save();   // première ouverture : reprend les données locales
+    } catch(e){}
+  }
+  lastDay = today();
+  render();
+  maybePrompt();
+}
+const _render = render;
+render = function(){ _render(); installHint(); };
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+name: Construire les apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  iphone:
+    name: App iPhone (.ipa, optionnelle)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Choisir la version de Xcode la plus récente
+        run: |
+          XC=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Copier l'app dans le projet iOS
+        run: npx cap sync ios
+
+      - name: Compiler (sans signature, Sideloadly signera)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Créer Habitudes.ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry Habitudes.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Habitudes-iPhone
+          path: Habitudes.ipa
+
+  windows:
+    name: App Windows (.exe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Installer NSIS
+        run: sudo apt-get update && sudo apt-get install -y nsis
+
+      - name: Construire
+        working-directory: desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci
+          npm run build:win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Habitudes-Windows
+          path: dist/Habitudes-Setup.exe
+
+  release:
+    name: Publier le téléchargement
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Habitudes-Windows
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: derniere-version
+          name: Habitudes — dernière version
+          make_latest: true
+          body: |
+            **Windows :** télécharge `Habitudes-Setup.exe` ci-dessous et double-clique dessus.
+            **iPhone :** ouvre le lien de l'app dans Safari → Partager → « Sur l'écran d'accueil ».
+          files: Habitudes-Setup.exe

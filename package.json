@@ -1,0 +1,22 @@
+{
+  "name": "habitudes",
+  "private": true,
+  "version": "1.2.0",
+  "description": "Habitudes — traqueur d'habitudes minimaliste (iPhone + Windows)",
+  "scripts": {
+    "ios:add": "cap add ios",
+    "ios:icons": "capacitor-assets generate --ios --assetPath assets",
+    "ios:sync": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/ios": "8.6.0",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.0"
+  }
+}

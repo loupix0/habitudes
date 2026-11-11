@@ -1,0 +1,10 @@
+{
+  "appId": "fr.habitudes.tracker.app7k2",
+  "appName": "Habitudes",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f7f7f4",
+    "scrollEnabled": true
+  }
+}

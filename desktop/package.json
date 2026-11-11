@@ -1,0 +1,13 @@
+{
+  "name": "habitudes-desktop",
+  "private": true,
+  "version": "1.2.0",
+  "description": "Habitudes — application de bureau Windows",
+  "scripts": {
+    "build:win": "node build-windows.js"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "resedit": "3.1.0"
+  }
+}
