@@ -196,6 +196,25 @@ button.cell:hover{outline:2px solid var(--line);outline-offset:2px}
 .menu button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:8px}
 .menu button:hover{background:var(--bg)}
 .menu .sep{margin:6px 4px}
+.todo-block{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 18px 10px;margin-top:22px;box-shadow:var(--shadow)}
+.tb-head{display:flex;justify-content:space-between;align-items:baseline}
+.tb-title{margin:0;font-size:20px;font-weight:600;color:var(--text);text-transform:none;letter-spacing:-.01em}
+.tb-count{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tb-list{list-style:none;margin:8px 0 0;padding:0}
+.tb-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:16px}
+.tb-item .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.tb-item .tag{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.tb-item.done .txt{color:var(--muted);text-decoration:line-through}
+.tb-item .x{color:var(--muted);opacity:0;padding:0 4px;font-size:18px}
+.tb-item:hover .x{opacity:1}
+@media (hover:none){.tb-item .x{opacity:.6}}
+.tb-box{width:24px;height:24px;flex:none;border-radius:7px;border:1.5px solid var(--pending);display:grid;place-items:center}
+.tb-box.round{border-radius:50%}
+.tb-box svg{width:13px;height:13px;opacity:0}
+button.tb-box:hover{border-color:var(--text)}
+.tb-item.done .tb-box{background:var(--text);border-color:var(--text);color:var(--bg)}
+.tb-item.done .tb-box svg{opacity:1}
+.tb-add{border:0!important;background:none!important;border-radius:0!important;padding:12px 0!important;font-size:16px}
 .install{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);font-size:14px}
 .install img{width:40px;height:40px;border-radius:10px;flex:none}
 .install b{font-weight:600}
@@ -691,9 +710,48 @@ function renderToday(p){
     html += `<div class="banner"><span>${first ? 'Choisis ta première habitude.' : 'Deux semaines de tenues ! Place à une nouvelle habitude.'}</span><button data-act="pick">Choisir</button></div>`;
   }
   const hs = p.habits.filter(h => habitOn(h, t));
-  html += `<div class="list" style="margin-top:22px">${hs.map(h => habitCard(p, h)).join('')}</div>`;
+  const planH = hs.find(h => h.kind === 'plan');
+  const block = planH ? todoBlock(p, hs) : null;
+  if (block && !block.finished){
+    html += block.html;
+    const rest = hs.filter(h => h !== planH && !block.ids.has(h.id));
+    if (rest.length) html += `<h2>Habitudes</h2><div class="list">${rest.map(h => habitCard(p, h)).join('')}</div>`;
+  } else html += `<div class="list" style="margin-top:22px">${hs.map(h => habitCard(p, h)).join('')}</div>`;
   if (!hs.length && !needNewHabit(p)) html += `<p class="muted">Aucune habitude aujourd'hui.</p>`;
   return html;
+}
+
+/* Gros bloc « À faire aujourd'hui » : to-do + habitudes encore à cocher, tant que tout n'est pas fait */
+function todoBlock(p, hs){
+  const t = today(), y = addDays(t, -1);
+  const todos = p.todos[t] || [];
+  const items = [], doneItems = [], ids = new Set();
+  for (const h of hs){
+    const sh = status(p, h, t);
+    if (h.kind === 'check' && (sh === 'pending' || sh === 'done')){
+      ids.add(h.id);
+      (sh === 'done' ? doneItems : items).push(`<li class="tb-item ${sh === 'done' ? 'done' : ''}"><button class="tb-box round" data-toggle="${h.id}" aria-label="Cocher">${ICON_CHECK}</button><span class="txt">${esc(habitName(h))}<span class="tag">habitude</span></span></li>`);
+    }
+    if (h.kind === 'wake' && status(p, h, t) === 'pending' && wakeState(h) === 'open'){
+      ids.add(h.id);
+      items.push(`<li class="tb-item"><span class="tb-box round"></span><span class="txt">${esc(habitName(h))}<span class="tag">avant ${fmtMin(toMin(h.time)+GRACE)}</span></span><button class="btn primary sm" data-wake="${h.id}">Debout</button></li>`);
+    }
+    if (h.kind === 'bed' && counts(p, h, y) && status(p, h, y) === 'pending'){
+      ids.add(h.id);
+      items.push(`<li class="tb-item"><span class="tb-box round"></span><span class="txt">Hier soir, au lit avant ${esc(h.time)} ?</span><span class="actions"><button class="btn sm" data-bed="${h.id}" data-v="done">Oui</button><button class="btn sm" data-bed="${h.id}" data-v="fail">Non</button></span></li>`);
+    }
+  }
+  const open = todos.filter(x => !x.done), closed = todos.filter(x => x.done);
+  const total = todos.length + items.length + doneItems.length, done = closed.length + doneItems.length;
+  const finished = todos.length > 0 && !open.length && !items.length;
+  const todoLi = x => `<li class="tb-item ${x.done ? 'done' : ''}"><button class="tb-box" data-todo="${x.id}" aria-label="Cocher">${ICON_CHECK}</button><span class="txt">${esc(x.text)}</span><button class="x" data-deltodo="${x.id}" aria-label="Supprimer">×</button></li>`;
+  const html = `<section class="todo-block">
+    <div class="tb-head"><h2 class="tb-title">À faire aujourd’hui</h2>${total ? `<span class="tb-count">${done}/${total}</span>` : ''}</div>
+    ${total ? `<div class="progress" style="margin:10px 0 4px"><i style="width:${Math.max(3, done / total * 100)}%"></i></div>` : `<p class="muted" style="margin:6px 0 0">Planifie ta journée : écris ce que tu veux faire.</p>`}
+    <ul class="tb-list">${open.map(todoLi).join('')}${items.join('')}${closed.map(todoLi).join('')}${doneItems.join('')}</ul>
+    <input type="text" class="tb-add" id="addTodo" placeholder="+ Ajouter une tâche" enterkeyhint="done">
+  </section>`;
+  return { html, ids, finished };
 }
 
 function checkIcon(s){ return s === 'fail' ? ICON_X : ICON_CHECK; }
