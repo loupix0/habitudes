@@ -1156,6 +1156,7 @@ function menu(e){
     <div class="sep"></div>
     <button data-m="sync">Synchronisation${syncCfg.token ? ` <span class="muted small">· ${syncLabel()}</span>` : ''}</button>
     <button data-m="export">Exporter une sauvegarde</button>
+    ${window.habitudesDesktop && window.habitudesDesktop.checkUpdate ? `<button data-m="update">Rechercher une mise à jour${appVersion ? ` <span class="muted small">· v${appVersion}</span>` : ''}</button>` : ''}
     <button data-m="import">Importer une sauvegarde</button>`;
   e.currentTarget.parentElement.appendChild(el);
   const close = ev => { if (!el.contains(ev.target) && !ev.target.closest('[data-act="menu"]')){ el.remove(); document.removeEventListener('mousedown', close); } };
@@ -1171,6 +1172,7 @@ function runCmd(c, arg){
   if (c === 'pick') return pickHabit();
   if (c === 'export') return exportData();
   if (c === 'sync') return syncModal();
+  if (c === 'update') return checkUpdateManual();
   if (c === 'charts') return openCharts(arg);
   if (c === 'charts-setup') return chartsSetup();
   if (c === 'import') return $('#importFile').click();
@@ -1747,6 +1749,42 @@ setInterval(() => { if (!document.hidden) syncNow(); }, 90000);
 addEventListener('online', () => syncNow());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
 
+/* =========================================================
+   Mises à jour automatiques (app Windows)
+   ========================================================= */
+const Desk = window.habitudesDesktop && window.habitudesDesktop.checkUpdate ? window.habitudesDesktop : null;
+let updateInfo = null, updateState = 'idle', updatePct = 0, appVersion = '';
+if (Desk){
+  Desk.version().then(v => { appVersion = v; });
+  Desk.onUpdate(info => { updateInfo = info; if (updateState === 'idle') updateBanner(); });
+  Desk.onUpdateProgress(pct => { updatePct = pct; const b = $('[data-upd]'); if (b) b.textContent = `Téléchargement… ${pct} %`; });
+}
+function updateBanner(){
+  const old = $('.update'); if (old) old.remove();
+  if (!updateInfo || updateState === 'dismissed') return;
+  const el = document.createElement('div'); el.className = 'install update';
+  el.innerHTML = `<img src="apple-touch-icon.png" alt=""><div><b>Nouvelle version ${esc(updateInfo.version)}</b><br><span class="muted small">Quelques secondes, tes données sont gardées.</span></div>
+    <button class="btn primary sm" data-upd style="margin-left:auto;white-space:nowrap" ${updateState === 'installing' ? 'disabled' : ''}>${updateState === 'installing' ? `Téléchargement… ${updatePct} %` : 'Mettre à jour'}</button>
+    <button class="x" aria-label="Plus tard" style="margin-left:0">×</button>`;
+  $('.x', el).onclick = () => { updateState = 'dismissed'; el.remove(); };
+  $('[data-upd]', el).onclick = async e => {
+    updateState = 'installing'; e.target.disabled = true; e.target.textContent = 'Téléchargement… 0 %';
+    stamp(); saveLocal();
+    const ok = await Desk.installUpdate();
+    if (ok){ e.target.textContent = 'Installation…'; }
+    else { updateState = 'idle'; e.target.disabled = false; e.target.textContent = 'Réessayer'; toast('Mise à jour impossible (connexion ?)'); }
+  };
+  app.prepend(el);
+}
+async function checkUpdateManual(){
+  if (!Desk) return;
+  toast('Recherche d’une mise à jour…');
+  const r = await Desk.checkUpdate();
+  if (r.status === 'available'){ updateState = 'idle'; updateInfo = { version: r.version }; updateBanner(); window.scrollTo(0, 0); }
+  else if (r.status === 'latest') toast(`Habitudes est à jour (version ${r.version})`);
+  else toast('Impossible de vérifier les mises à jour');
+}
+
 /* App installable (iPhone / Android / PC) quand elle est servie en ligne */
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !Native) {
@@ -1781,7 +1819,7 @@ async function boot(){
   syncNow();
 }
 const _render = render;
-render = function(){ _render(); installHint(); };
+render = function(){ _render(); installHint(); updateBanner(); };
 boot();
 </script>
 </body>

@@ -21,6 +21,8 @@ Sur un nouvel appareil, touche **« Récupérer mes profils »** sur l'écran d'
 2. Windows affiche « Windows a protégé votre ordinateur », car l'app n'est pas signée par un éditeur payant. Clique sur **Informations complémentaires**, puis **Exécuter quand même**.
 3. L'installation se fait sans droits administrateur. Elle crée un raccourci sur le Bureau et dans le menu Démarrer.
 
+**Mises à jour :** l'app vérifie toute seule au démarrage. Quand une nouvelle version existe, un bandeau propose **Mettre à jour** : elle se télécharge, s'installe et se relance en quelques secondes. Tu peux aussi faire **⋯ → Rechercher une mise à jour**.
+
 Tes données sont dans `%APPDATA%\Habitudes\habitudes.json`. Elles sont conservées si tu désinstalles l'app.
 Pour désinstaller : Paramètres → Applications → Habitudes.
 

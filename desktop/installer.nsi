@@ -1,6 +1,8 @@
 ; Installateur Windows de Habitudes (installation pour l'utilisateur, sans droits administrateur)
 Unicode true
 !include "MUI2.nsh"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 !define APPNAME "Habitudes"
 !ifndef VERSION
@@ -27,6 +29,7 @@ BrandingText " "
 
 Section "Install"
   nsExec::Exec 'taskkill /IM "${APPNAME}.exe" /F'
+  Sleep 1500
   SetOutPath "$INSTDIR"
   RMDir /r "$INSTDIR\resources"
   File /r "${SRCDIR}\*.*"
@@ -41,6 +44,13 @@ Section "Install"
   WriteRegStr HKCU "${REGKEY}" "UninstallString" '"$INSTDIR\Desinstaller.exe"'
   WriteRegDWORD HKCU "${REGKEY}" "NoModify" 1
   WriteRegDWORD HKCU "${REGKEY}" "NoRepair" 1
+  ; mise à jour automatique : relancer l'app une fois installée
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/relaunch" $R1
+  ${IfNot} ${Errors}
+    Exec '"$INSTDIR\${APPNAME}.exe"'
+  ${EndIf}
 SectionEnd
 
 ; Les données (dans %APPDATA%\Habitudes) ne sont pas supprimées à la désinstallation.

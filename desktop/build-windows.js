@@ -7,7 +7,7 @@ const ResEdit = require('resedit');
 
 const pkg = require('./package.json');
 const ELECTRON = pkg.devDependencies.electron;
-const VERSION = pkg.version;
+const VERSION = process.env.HABITUDES_VERSION || pkg.version;
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const CACHE = path.join(__dirname, '.cache');
@@ -71,6 +71,16 @@ const setup = path.join(DIST, 'Habitudes-Setup.exe');
 try {
   run('makensis', ['-V2', `-DVERSION=${VERSION}`, `-DSRCDIR=${OUT}`, `-DOUTFILE=${setup}`, 'installer.nsi'], { cwd: __dirname });
   console.log('✓', path.relative(ROOT, setup));
+  // Fichier lu par l'app pour savoir s'il existe une nouvelle version
+  const data = fs.readFileSync(setup);
+  const repo = process.env.GITHUB_REPOSITORY || 'loupix0/habitudes';
+  fs.writeFileSync(path.join(DIST, 'latest.json'), JSON.stringify({
+    version: VERSION,
+    url: `https://github.com/${repo}/releases/download/derniere-version/Habitudes-Setup.exe`,
+    sha256: require('crypto').createHash('sha256').update(data).digest('hex'),
+    size: data.length,
+  }, null, 2));
+  console.log('✓ dist/latest.json (version ' + VERSION + ')');
 } catch (e) {
   console.log('makensis introuvable : installateur non généré (la version portable suffit).');
 }
