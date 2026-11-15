@@ -15,6 +15,15 @@ Sur un nouvel appareil, touche **« Récupérer mes profils »** sur l'écran d'
 
 ---
 
+## Rappels sur l'iPhone (12 h et 18 h)
+Une notification discrète liste ce qu'il te reste à faire. Rien n'est envoyé si tout est fait.
+1. Active d'abord la synchronisation (voir plus haut).
+2. Dans l'app ouverte **depuis l'icône de l'écran d'accueil** : menu **⋯ → Rappels**, puis **Activer les rappels** et **Autoriser**.
+3. Une seule fois : copie le code affiché, touche **Ouvrir GitHub**, écris `HABITUDES_GIST` dans **Name**, colle le code dans **Secret**, puis **Add secret**.
+
+Pour tester tout de suite : sur GitHub, onglet **Actions → Rappels → Run workflow**.
+Si l'iPhone fait du bruit : Réglages → Notifications → Habitudes → désactive **Sons**, ou choisis **Résumé programmé**.
+
 ## Windows
 
 1. Double-clique sur **Habitudes-Setup.exe**.

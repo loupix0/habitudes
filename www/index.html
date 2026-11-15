@@ -421,7 +421,22 @@ function mergeState(a, b){
     out.profiles[id] = pa && pb ? mergeProfile(pa, pb) : clone(pa || pb);
   }
   out.current = a.current;
+  const push = mergePush(a.push, b.push); if (push) out.push = push;
   return out;
+}
+function mergePush(x, y){
+  if (!x && !y) return null;
+  x = x || {}; y = y || {};
+  const o = {};
+  o.vapid = !x.vapid ? y.vapid : !y.vapid ? x.vapid : ((x.vapid.created || 0) <= (y.vapid.created || 0) ? x.vapid : y.vapid);
+  const hx = x.hoursU || 0, hy = y.hoursU || 0;
+  o.hours = hx >= hy ? (x.hours || y.hours) : y.hours; o.hoursU = Math.max(hx, hy);
+  o.subs = {};
+  for (const id of new Set([...Object.keys(x.subs || {}), ...Object.keys(y.subs || {})])){
+    const a = (x.subs || {})[id], b = (y.subs || {})[id];
+    o.subs[id] = !b || (a && (a.u || 0) >= (b.u || 0)) ? a : b;
+  }
+  return clone(o);
 }
 function mergeProfile(a, b){
   const pick = (f) => ((a[f] || 0) >= (b[f] || 0) ? a : b);
@@ -1198,7 +1213,7 @@ function profilesModal(){
   });
 }
 function switchProfile(id){
-  S.current = id; save(); closeModal(); planDismissed = false; view = 'today';
+  S.current = id; save(); refreshReminder(); closeModal(); planDismissed = false; view = 'today';
   render(); toast(`Profil : ${S.profiles[id].name}`); maybePrompt();
 }
 
@@ -1213,6 +1228,7 @@ function menu(e){
     <button data-m="charts-setup">Configurer mes graphiques</button>
     <div class="sep"></div>
     <button data-m="sync">Synchronisation${syncCfg.token ? ` <span class="muted small">· ${syncLabel()}</span>` : ''}</button>
+    ${remindersOffered() ? `<button data-m="reminders">Rappels${mySub() ? ` <span class="muted small">· ${hoursLabel((S.push && S.push.hours) || [12, 18])}</span>` : ''}</button>` : ''}
     <button data-m="export">Exporter une sauvegarde</button>
     ${window.habitudesDesktop && window.habitudesDesktop.checkUpdate ? `<button data-m="update">Rechercher une mise à jour${appVersion ? ` <span class="muted small">· v${appVersion}</span>` : ''}</button>` : ''}
     <button data-m="import">Importer une sauvegarde</button>`;
@@ -1230,6 +1246,7 @@ function runCmd(c, arg){
   if (c === 'pick') return pickHabit();
   if (c === 'export') return exportData();
   if (c === 'sync') return syncModal();
+  if (c === 'reminders') return remindersModal();
   if (c === 'update') return checkUpdateManual();
   if (c === 'charts') return openCharts(arg);
   if (c === 'charts-setup') return chartsSetup();
@@ -1255,6 +1272,7 @@ function palette(){
     for (const id of Object.keys(S.profiles)) if (id !== S.current) c.push([`Ouvrir le profil ${S.profiles[id].name}`, 'switch', id, 'profil changer ' + S.profiles[id].name]);
     c.push(['Voir les graphiques de la semaine', 'charts', 'week', 'graphiques graphique courbe semaine'], ['Voir les graphiques du mois', 'charts', 'month', 'graphiques graphique mois'], ['Voir les graphiques de l\u2019année', 'charts', 'year', 'graphiques graphique année'], ['Configurer mes graphiques', 'charts-setup', null, 'graphiques épingler configurer accueil']);
     c.push(['Synchronisation iPhone ↔ Windows', 'sync', null, 'synchroniser synchro sync iphone windows github']);
+    if (remindersOffered()) c.push(['Rappels (notifications)', 'reminders', null, 'rappels notifications notif midi soir']);
     c.push(['Gérer les profils', 'profiles', null, 'profils'], ['Exporter une sauvegarde', 'export', null, 'export sauvegarde'], ['Importer une sauvegarde', 'import', null, 'import']);
     return c;
   };
@@ -1843,6 +1861,133 @@ async function checkUpdateManual(){
   else toast('Impossible de vérifier les mises à jour');
 }
 
+/* =========================================================
+   Rappels (notifications) sur iPhone — envoyés par GitHub
+   ========================================================= */
+const PUSH_ID_KEY = 'habitudes.pushId';
+const SECRET_URL = 'https://github.com/loupix0/habitudes/settings/secrets/actions/new';
+const REMIND_HOURS = [8, 10, 12, 14, 16, 18, 20, 21];
+const pushPossible = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const remindersOffered = () => !window.habitudesDesktop && /^https?:$/.test(location.protocol);
+const pushId = () => { let id = null; try { id = localStorage.getItem(PUSH_ID_KEY); if (!id){ id = 'd' + uid() + uid(); localStorage.setItem(PUSH_ID_KEY, id); } } catch(e){ id = 'd' + uid(); } return id; };
+const mySub = () => { const s = S.push && S.push.subs && S.push.subs[pushId()]; return s && !s.del ? s : null; };
+const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = str => { const s = str.replace(/-/g, '+').replace(/_/g, '/'); const b = atob(s + '='.repeat((4 - s.length % 4) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+const hoursLabel = hs => hs.slice().sort((a, b) => a - b).map(h => h + ' h').join(', ').replace(/, ([^,]*)$/, ' et $1');
+
+async function enableReminders(){
+  if (Notification.permission !== 'granted'){
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted'){ toast('Notifications refusées : Réglages → Notifications → Habitudes'); return false; }
+  }
+  await syncNow();
+  S.push = S.push || {};
+  if (!S.push.vapid){
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
+    const raw = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    S.push.vapid = { pub: b64u(raw), d: jwk.d, created: Date.now() };
+  }
+  if (!S.push.hours){ S.push.hours = [12, 18]; S.push.hoursU = Date.now(); }
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  const key = sub && sub.options && sub.options.applicationServerKey ? b64u(new Uint8Array(sub.options.applicationServerKey)) : null;
+  if (sub && key !== S.push.vapid.pub){ await sub.unsubscribe(); sub = null; }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: unb64u(S.push.vapid.pub) });
+  const j = sub.toJSON();
+  S.push.subs = S.push.subs || {};
+  S.push.subs[pushId()] = { endpoint: j.endpoint, keys: j.keys, profile: S.current, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, u: Date.now() };
+  save();
+  return await syncNow();
+}
+async function disableReminders(){
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch(e){}
+  if (S.push && S.push.subs) S.push.subs[pushId()] = { del: true, u: Date.now() };
+  save(); await syncNow();
+}
+/* À chaque ouverture : garder l'abonnement à jour (profil affiché, renouvellement par l'iPhone) */
+async function refreshReminder(){
+  const s = mySub(); if (!s || !pushPossible()) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub){ return; }
+    const j = sub.toJSON();
+    if (j.endpoint !== s.endpoint || s.profile !== S.current){
+      Object.assign(s, { endpoint: j.endpoint, keys: j.keys, profile: S.current, u: Date.now() });
+      save();
+    }
+  } catch(e){}
+}
+function remindersModal(){
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const on = !!mySub();
+  const hours = (S.push && S.push.hours) || [12, 18];
+  let body;
+  if (!syncCfg.token){
+    body = `<p class="muted" style="margin:0">Les rappels utilisent la synchronisation pour savoir ce qu'il te reste à faire. Active-la d'abord.</p>
+      <div class="foot"><button class="btn ghost" data-c>Fermer</button><button class="btn primary" data-sync>Activer la synchronisation</button></div>`;
+  } else if (!pushPossible() || (ios && !standalone)){
+    body = `<p class="muted" style="margin:0">${ios ? 'Sur iPhone, les rappels ne marchent que dans l’app ouverte depuis l’<b>icône de l’écran d’accueil</b> (iOS 16.4 ou plus récent). Ouvre-la depuis l’icône, puis reviens ici.' : 'Ce navigateur ne permet pas les notifications.'}</p>
+      <div class="foot"><button class="btn primary" data-c>OK</button></div>`;
+  } else if (!on){
+    body = `<p class="muted" style="margin:0">Une notification discrète te liste ce qu'il te reste à faire (tâches et habitudes). Rien n'est envoyé si tout est fait.</p>
+      <div class="field"><label>Heures des rappels</label><div class="chips" style="justify-content:flex-start">${REMIND_HOURS.map(h => `<button class="chipt ${hours.includes(h) ? 'on' : ''}" data-h="${h}">${h} h</button>`).join('')}</div></div>
+      <div class="foot"><button class="btn ghost" data-c>Annuler</button><button class="btn primary" data-on>Activer les rappels</button></div>`;
+  } else {
+    body = `<div class="card" style="margin-top:4px"><div class="title">Rappels activés sur cet appareil</div><div class="meta">${hoursLabel(hours)}, sans son${ios ? '' : ' ni vibration'} quand c'est possible</div></div>
+      <div class="field"><label>Heures des rappels</label><div class="chips" style="justify-content:flex-start">${REMIND_HOURS.map(h => `<button class="chipt ${hours.includes(h) ? 'on' : ''}" data-h="${h}">${h} h</button>`).join('')}</div></div>
+      <h2 style="margin:18px 0 6px">Dernière étape (une seule fois)</h2>
+      <ol style="padding-left:20px;margin:0;display:flex;flex-direction:column;gap:8px;font-size:14px">
+        <li>Copie ce code : <button class="btn sm" data-copy style="margin-left:4px">Copier le code</button><input type="text" readonly value="${esc(syncCfg.gistId || '')}" data-code style="margin-top:6px;font-family:ui-monospace,monospace;font-size:13px"></li>
+        <li>Ouvre GitHub : <button class="btn sm" data-secret style="margin-left:4px">Ouvrir GitHub</button></li>
+        <li>Dans <b>Name</b>, écris <code>HABITUDES_GIST</code>. Dans <b>Secret</b>, colle le code. Puis <b>Add secret</b>.</li>
+      </ol>
+      <p class="muted small" style="margin:12px 0 0">Si l'iPhone fait quand même du bruit : Réglages → Notifications → Habitudes → désactive <b>Sons</b>, ou choisis <b>Résumé programmé</b>.</p>
+      <div class="foot" style="justify-content:space-between"><button class="btn danger" data-off>Désactiver</button><span class="actions"><button class="btn" data-test>Exemple</button><button class="btn primary" data-c>Terminé</button></span></div>`;
+  }
+  const m = openModal(`<h3>Rappels</h3>${body}`);
+  $$('[data-c]', m).forEach(b => b.onclick = closeModal);
+  const sy = $('[data-sync]', m); if (sy) sy.onclick = () => syncModal();
+  $$('[data-h]', m).forEach(b => b.onclick = () => {
+    S.push = S.push || {}; let hs = (S.push.hours || [12, 18]).slice(); const h = +b.dataset.h;
+    hs = hs.includes(h) ? hs.filter(x => x !== h) : hs.concat(h);
+    if (!hs.length){ toast('Garde au moins une heure'); return; }
+    S.push.hours = hs.sort((a, b) => a - b); S.push.hoursU = Date.now();
+    b.classList.toggle('on'); save();
+  });
+  const onB = $('[data-on]', m);
+  if (onB) onB.onclick = async () => {
+    onB.disabled = true; onB.textContent = 'Activation…';
+    try { const ok = await enableReminders(); if (ok){ toast('Rappels activés'); remindersModal(); } else { onB.disabled = false; onB.textContent = 'Activer les rappels'; if (syncErr) toast('Synchronisation : ' + syncErr); } }
+    catch(e){ onB.disabled = false; onB.textContent = 'Activer les rappels'; toast('Activation impossible sur cet appareil'); }
+  };
+  const cp = $('[data-copy]', m);
+  if (cp) cp.onclick = async () => { const i = $('[data-code]', m); try { await navigator.clipboard.writeText(i.value); toast('Code copié'); } catch(e){ i.select(); document.execCommand('copy'); toast('Code copié'); } };
+  const sc = $('[data-secret]', m); if (sc) sc.onclick = () => window.open(SECRET_URL, '_blank');
+  const ts = $('[data-test]', m);
+  if (ts) ts.onclick = async () => {
+    const reg = await navigator.serviceWorker.ready; const r = reminderText();
+    reg.showNotification(r.title, { body: r.body, icon: 'icon-192.png', tag: 'habitudes-test', silent: true });
+  };
+  const off = $('[data-off]', m);
+  if (off) off.onclick = async () => { await disableReminders(); toast('Rappels désactivés'); closeModal(); };
+}
+/* Même texte que celui envoyé par GitHub (pour l'exemple) */
+function reminderText(){
+  const p = P(), t = today(), left = [];
+  if (p && isLive(p)){
+    const plan = p.habits.find(h => h.kind === 'plan' && habitOn(h, t));
+    const todos = p.todos[t] || [];
+    if (plan && !todos.length) left.push('Planifier ta journée');
+    for (const x of todos) if (!x.done) left.push(x.text);
+    for (const h of p.habits) if (h.kind === 'check' && habitOn(h, t) && status(p, h, t) === 'pending') left.push(habitName(h));
+  }
+  if (!left.length) return { title: 'Habitudes', body: 'Tout est fait pour aujourd’hui. Bravo !' };
+  return { title: `Il te reste ${left.length} chose${left.length > 1 ? 's' : ''} à faire`, body: left.join(' · ') };
+}
+
 /* App installable (iPhone / Android / PC) quand elle est servie en ligne */
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !Native) {
@@ -1874,7 +2019,7 @@ async function boot(){
   lastDay = today();
   render();
   maybePrompt();
-  syncNow();
+  syncNow().then(refreshReminder);
 }
 const _render = render;
 render = function(){ _render(); installHint(); updateBanner(); };

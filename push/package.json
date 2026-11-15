@@ -1,0 +1,9 @@
+{
+  "name": "habitudes-rappels",
+  "private": true,
+  "type": "module",
+  "description": "Envoie les rappels (notifications) Habitudes depuis GitHub Actions",
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}
